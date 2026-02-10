@@ -286,8 +286,9 @@ Event emitter for window lifecycle and input events.
 
 #### Events
 
+- `keydown` -- Emitted when a key is pressed (with `NativeKeyboardEvent` payload)
+- `keyup` -- Emitted when a key is released (with `NativeKeyboardEvent` payload)
 - `close` -- Emitted when the window is closed
-- `key` -- Emitted on keyboard events
 - `resize` -- Emitted when the window is resized (with `{ columns, rows }`)
 - `sigint` -- Emitted on Ctrl+C (if a listener is registered; otherwise sends SIGINT to the process)
 
@@ -303,9 +304,59 @@ Event emitter for window lifecycle and input events.
 - `resume()` -- Resume the Ink event loop
 - `isPaused()` -- Check if the event loop is paused
 
-## Keyboard Support
+## Keyboard Events
 
-The following keys are mapped to terminal sequences:
+The `window` emits `keydown` and `keyup` events with a `NativeKeyboardEvent` payload:
+
+```typescript
+import { createStreams, type NativeKeyboardEvent } from "ink-native";
+
+const { window } = createStreams({ title: "My Game" });
+
+window.on("keydown", (event: NativeKeyboardEvent) => {
+  console.log(event.key);     // "a", "A", "Enter", "ArrowUp", "Shift"
+  console.log(event.code);    // "KeyA", "Enter", "ArrowUp", "ShiftLeft"
+  console.log(event.ctrlKey); // true if Ctrl is held
+  console.log(event.type);    // "keydown"
+});
+
+window.on("keyup", (event: NativeKeyboardEvent) => {
+  console.log(event.key, "released");
+});
+```
+
+#### `NativeKeyboardEvent`
+
+| Property   | Type                     | Description                                             |
+| ---------- | ------------------------ | ------------------------------------------------------- |
+| `key`      | `string`                 | The key value: `"a"`, `"A"`, `"Enter"`, `"Shift"`      |
+| `code`     | `string`                 | Physical key code: `"KeyA"`, `"Enter"`, `"ShiftLeft"`   |
+| `ctrlKey`  | `boolean`                | Whether Ctrl is held                                    |
+| `shiftKey` | `boolean`                | Whether Shift is held                                   |
+| `altKey`   | `boolean`                | Whether Alt is held                                     |
+| `metaKey`  | `boolean`                | Whether Meta/Command is held                            |
+| `repeat`   | `false`                  | Always `false` (fenster only reports transitions)       |
+| `type`     | `"keydown" \| "keyup"`   | Whether the key was pressed or released                 |
+
+Modifier keys fire their own events with left/right distinction — `event.code` will be `"ShiftLeft"` or `"ShiftRight"`, while `event.key` gives the generic name `"Shift"`.
+
+#### `isNativeKeyboardEvent(value)`
+
+Type guard to check if a value is a `NativeKeyboardEvent`:
+
+```typescript
+import { isNativeKeyboardEvent } from "ink-native";
+
+window.on("keydown", (event) => {
+  if (isNativeKeyboardEvent(event)) {
+    // event is typed as NativeKeyboardEvent
+  }
+});
+```
+
+### Terminal Sequences
+
+In addition to `keydown`/`keyup` events, key presses are also mapped to terminal escape sequences and pushed to `stdin` for Ink's built-in key handling:
 
 - Arrow keys (Up, Down, Left, Right)
 - Enter, Escape, Backspace, Tab, Delete
@@ -326,6 +377,11 @@ import {
   Window,
   InputStream,
   OutputStream,
+
+  // Keyboard events
+  createKeyboardEvent,
+  isNativeKeyboardEvent,
+  type NativeKeyboardEvent,
 
   // Renderer
   UiRenderer,
