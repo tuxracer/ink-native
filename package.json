@@ -1,0 +1,71 @@
+{
+  "name": "ink-native",
+  "version": "0.1.0",
+  "description": "Render Ink terminal apps in a native window",
+  "type": "module",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "import": "./dist/index.js",
+      "types": "./dist/index.d.ts"
+    }
+  },
+  "bin": {
+    "ink-native": "./dist/cli.js"
+  },
+  "files": [
+    "dist",
+    "fonts",
+    "native"
+  ],
+  "scripts": {
+    "dev": "tsx src/index.ts",
+    "demo": "tsx src/cli.tsx",
+    "build": "tsup src/index.ts src/cli.tsx --format esm --dts --clean",
+    "start": "node dist/index.js",
+    "lint": "biome lint src/",
+    "lint:fix": "biome lint --write src/",
+    "format": "biome format --write src/",
+    "test": "vitest",
+    "check": "biome check --write src/ && tsc --noEmit",
+    "build:fenster": "bash scripts/build-fenster.sh",
+    "generate-font": "tsx scripts/generate-font-data.ts",
+    "prepublishOnly": "pnpm run build"
+  },
+  "keywords": [
+    "terminal",
+    "tui",
+    "fenster",
+    "native",
+    "window",
+    "ink",
+    "react",
+    "cli"
+  ],
+  "author": "Derek Petersen",
+  "license": "MIT",
+  "packageManager": "pnpm@10.28.0",
+  "engines": {
+    "node": ">=24.0.0"
+  },
+  "dependencies": {
+    "koffi": "^2.9.3",
+    "remeda": "^2.33.4"
+  },
+  "peerDependencies": {
+    "ink": "^5.0.0 || ^6.0.0",
+    "react": "^18.0.0 || ^19.0.0"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "^2.3.14",
+    "@types/node": "^22.13.1",
+    "@types/react": "^19.2.10",
+    "ink": "^6.6.0",
+    "react": "^19.2.4",
+    "tsup": "^8.5.1",
+    "tsx": "^4.19.2",
+    "typescript": "^5.7.3",
+    "vitest": "^3.0.4"
+  }
+}

@@ -1,0 +1,78 @@
+{
+	"$schema": "https://biomejs.dev/schemas/2.3.14/schema.json",
+	"formatter": {
+		"indentStyle": "tab",
+		"lineWidth": 80
+	},
+	"javascript": {
+		"formatter": {
+			"quoteStyle": "double",
+			"trailingCommas": "all"
+		}
+	},
+	"linter": {
+		"rules": {
+			"recommended": true,
+			"complexity": {
+				"useLiteralKeys": "off"
+			},
+			"correctness": {
+				"noUnusedImports": "error"
+			},
+			"nursery": {
+				"noFloatingPromises": "error",
+				"noMisusedPromises": "error",
+				"useAwaitThenable": "error"
+			},
+			"style": {
+				"noMagicNumbers": "error",
+				"noNonNullAssertion": "off",
+				"useArrayLiterals": "error",
+				"useConst": "error",
+				"useConsistentCurlyBraces": "error",
+				"noRestrictedImports": {
+					"level": "error",
+					"options": {
+						"paths": {},
+						"patterns": [
+							{
+								"group": ["**/index", "**/index.*"],
+								"message": "Import the module root (\"module\") instead of \"module/index\"."
+							},
+							{
+								"group": ["**/*.js"],
+								"message": "Do not include .js in import paths; use the bare path instead."
+							}
+						]
+					}
+				}
+			},
+			"suspicious": {
+				"noDoubleEquals": "error",
+				"useErrorMessage": "error"
+			}
+		}
+	},
+	"overrides": [
+		{
+			"includes": ["src/**/tests.ts", "src/**/tests.tsx"],
+			"linter": {
+				"rules": {
+					"style": {
+						"noMagicNumbers": "off"
+					}
+				}
+			}
+		},
+		{
+			"includes": ["src/BitmapFont/glyphData.ts"],
+			"linter": {
+				"rules": {
+					"style": {
+						"noMagicNumbers": "off"
+					}
+				}
+			}
+		}
+	]
+}
