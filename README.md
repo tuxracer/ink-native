@@ -127,7 +127,7 @@ window.on("close", () => process.exit(0));
 
 ## Direct Framebuffer Access
 
-For high-framerate graphics (emulators, games, video players), you can write pixels directly to the framebuffer while pausing the Ink event loop:
+For high-framerate graphics (emulators, games, video players), you can write pixels directly to the framebuffer while pausing Ink:
 
 ```tsx
 import { createStreams, packColor } from "ink-native";
@@ -147,12 +147,25 @@ const { stdin, stdout, window, renderer } = createStreams({
 
 render(<App />, { stdin, stdout });
 
-// Pause Ink's event loop to take over rendering
+// Pause Ink to take over rendering
 window.pause();
 
 const fb = renderer.getFramebuffer();
 
-// Game loop — you control timing and rendering
+// Keyboard events keep firing when paused
+window.on("keydown", (event) => {
+  if (event.key === "q") {
+    clearInterval(gameLoop);
+    window.resume(); // hand control back to Ink
+  }
+});
+
+window.on("close", () => {
+  clearInterval(gameLoop);
+  process.exit(0);
+});
+
+// Game loop — just render, events are handled automatically
 const gameLoop = setInterval(() => {
   // Write pixels directly (0xAARRGGBB format)
   for (let y = 100; y < 200; y++) {
@@ -161,24 +174,8 @@ const gameLoop = setInterval(() => {
     }
   }
 
-  // Present the framebuffer and poll window events
+  // Copy to native buffer (the event loop presents it)
   renderer.present();
-  const { keyEvents, mod } = renderer.processEventsAndPresent();
-
-  // Handle input
-  for (const event of keyEvents) {
-    const seq = renderer.keyEventToSequence(event, mod);
-    if (seq === "q") {
-      clearInterval(gameLoop);
-      window.resume(); // hand control back to Ink
-    }
-  }
-
-  if (renderer.shouldClose()) {
-    clearInterval(gameLoop);
-    window.close();
-    process.exit(0);
-  }
 }, 16); // ~60fps
 ```
 
@@ -211,31 +208,24 @@ const startEmulator = () => {
   window.pause();
 
   const fb = renderer.getFramebuffer();
+  let emuLoop: ReturnType<typeof setInterval>;
 
-  const emuLoop = setInterval(() => {
+  // Keyboard events keep firing when paused
+  window.on("keydown", (event) => {
+    if (event.key === "Escape") {
+      // Return to menu
+      clearInterval(emuLoop);
+      renderer.clear();
+      window.resume(); // hand control back to Ink
+    }
+  });
+
+  emuLoop = setInterval(() => {
     // Write emulator frame directly to the framebuffer
     renderEmulatorFrame(fb.pixels, fb.width, fb.height);
 
-    // Present and poll events
+    // Copy to native buffer (the event loop presents it)
     renderer.present();
-    const { keyEvents, mod } = renderer.processEventsAndPresent();
-
-    for (const event of keyEvents) {
-      const seq = renderer.keyEventToSequence(event, mod);
-      if (seq === "\x1b") {
-        // Escape pressed — return to menu
-        clearInterval(emuLoop);
-        renderer.clear();
-        window.resume(); // hand control back to Ink
-        return;
-      }
-    }
-
-    if (renderer.shouldClose()) {
-      clearInterval(emuLoop);
-      window.close();
-      process.exit(0);
-    }
   }, 16);
 };
 ```
@@ -248,9 +238,9 @@ The framebuffer is shared — Ink renders to it when active, and you write pixel
 | --------------------------- | ------------------------------------------------------- |
 | `packColor(r, g, b)`        | Pack RGB values into `0xAARRGGBB` pixel format          |
 | `renderer.getFramebuffer()` | Get `{ pixels, width, height }` — the live pixel buffer |
-| `window.pause()`            | Stop Ink's event loop for manual rendering              |
-| `window.resume()`           | Restart Ink's event loop                                |
-| `window.isPaused()`         | Check if the event loop is paused                       |
+| `window.pause()`            | Pause Ink (events keep firing)                          |
+| `window.resume()`           | Resume Ink                                              |
+| `window.isPaused()`         | Check if Ink is paused                                  |
 
 ## API
 
@@ -300,9 +290,10 @@ Event emitter for window lifecycle and input events.
 - `clear()` -- Clear the screen
 - `close()` -- Close the window
 - `isClosed()` -- Check if the window is closed
-- `pause()` -- Pause the Ink event loop for manual rendering
-- `resume()` -- Resume the Ink event loop
-- `isPaused()` -- Check if the event loop is paused
+- `pause()` -- Pause Ink for manual rendering (keydown/keyup/resize/close events keep firing)
+- `resume()` -- Resume Ink
+- `isPaused()` -- Check if Ink is paused
+- `processEvents()` -- Manually poll events and present the framebuffer (for custom render loops that need explicit control)
 
 ## Keyboard Events
 
