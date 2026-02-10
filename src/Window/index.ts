@@ -8,6 +8,7 @@
 import { EventEmitter } from "node:events";
 import { isDefined, pickBy } from "remeda";
 import { InputStream } from "../InputStream";
+import { createKeyboardEvent } from "../KeyboardEvent";
 import { OutputStream } from "../OutputStream";
 import { UiRenderer, type UiRendererOptions } from "../UiRenderer";
 import {
@@ -75,22 +76,35 @@ export class Window extends EventEmitter {
 		// Process events and present the framebuffer
 		const { keyEvents, mod, resized } = this.renderer.processEventsAndPresent();
 
-		// Convert key events to terminal sequences
+		// Convert key events to terminal sequences and emit keyboard events
 		for (const event of keyEvents) {
-			const sequence = this.renderer.keyEventToSequence(event, mod);
-			if (sequence) {
-				// Ctrl+C handling
-				if (sequence === "\x03") {
-					if (this.listenerCount("sigint") > 0) {
-						this.emit("sigint");
-					} else {
-						process.kill(process.pid, "SIGINT");
+			const kbEvent = createKeyboardEvent(event, mod);
+
+			if (event.pressed) {
+				const sequence = this.renderer.keyEventToSequence(event, mod);
+				if (sequence) {
+					// Ctrl+C handling
+					if (sequence === "\x03") {
+						if (this.listenerCount("sigint") > 0) {
+							this.emit("sigint");
+						} else {
+							process.kill(process.pid, "SIGINT");
+						}
+
+						if (kbEvent) {
+							this.emit("keydown", kbEvent);
+						}
+						continue;
 					}
-					continue;
+
+					this.inputStream.pushKey(sequence);
 				}
 
-				this.inputStream.pushKey(sequence);
-				this.emit("key", event);
+				if (kbEvent) {
+					this.emit("keydown", kbEvent);
+				}
+			} else if (kbEvent) {
+				this.emit("keyup", kbEvent);
 			}
 		}
 

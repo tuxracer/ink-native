@@ -54,17 +54,43 @@ export const FENSTER_KEY_END = 5;
 export const FENSTER_KEY_INSERT = 26;
 
 // Letter keys (A-Z map to 65-90)
-/** ASCII code for 'A' in fenster key indices */
 export const FENSTER_KEY_A = 65;
-
-/** ASCII code for 'Z' in fenster key indices */
+export const FENSTER_KEY_B = 66;
+export const FENSTER_KEY_C = 67;
+export const FENSTER_KEY_D = 68;
+export const FENSTER_KEY_E = 69;
+export const FENSTER_KEY_F = 70;
+export const FENSTER_KEY_G = 71;
+export const FENSTER_KEY_H = 72;
+export const FENSTER_KEY_I = 73;
+export const FENSTER_KEY_J = 74;
+export const FENSTER_KEY_K = 75;
+export const FENSTER_KEY_L = 76;
+export const FENSTER_KEY_M = 77;
+export const FENSTER_KEY_N = 78;
+export const FENSTER_KEY_O = 79;
+export const FENSTER_KEY_P = 80;
+export const FENSTER_KEY_Q = 81;
+export const FENSTER_KEY_R = 82;
+export const FENSTER_KEY_S = 83;
+export const FENSTER_KEY_T = 84;
+export const FENSTER_KEY_U = 85;
+export const FENSTER_KEY_V = 86;
+export const FENSTER_KEY_W = 87;
+export const FENSTER_KEY_X = 88;
+export const FENSTER_KEY_Y = 89;
 export const FENSTER_KEY_Z = 90;
 
 // Digit keys (0-9 map to 48-57)
-/** ASCII code for '0' in fenster key indices */
 export const FENSTER_KEY_0 = 48;
-
-/** ASCII code for '9' in fenster key indices */
+export const FENSTER_KEY_1 = 49;
+export const FENSTER_KEY_2 = 50;
+export const FENSTER_KEY_3 = 51;
+export const FENSTER_KEY_4 = 52;
+export const FENSTER_KEY_5 = 53;
+export const FENSTER_KEY_6 = 54;
+export const FENSTER_KEY_7 = 55;
+export const FENSTER_KEY_8 = 56;
 export const FENSTER_KEY_9 = 57;
 
 // Symbol keys

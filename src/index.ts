@@ -47,6 +47,12 @@ export {
 	isFensterAvailable,
 } from "./Fenster";
 export { InputStream } from "./InputStream";
+// KeyboardEvent
+export {
+	createKeyboardEvent,
+	isNativeKeyboardEvent,
+	type NativeKeyboardEvent,
+} from "./KeyboardEvent";
 export { OutputStream } from "./OutputStream";
 // Renderer
 export {

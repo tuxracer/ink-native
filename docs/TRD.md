@@ -152,17 +152,28 @@ Renders text using embedded Cozette bitmap font data:
 - Faux-italic rendering via horizontal shear (~8.7 degree slant)
 - Glyph dimensions: 6x13 pixels (normal), 12x13 pixels (double-width)
 
-#### 6. Window
+#### 6. KeyboardEvent
+
+Converts fenster key events into `NativeKeyboardEvent` objects:
+
+- Maps fenster key indices to `key` and `code` strings via lookup tables
+- Handles shift state to produce correct `key` values (e.g., `a` → `A`, `1` → `!`)
+- Derives modifier booleans (`ctrlKey`, `shiftKey`, `altKey`, `metaKey`) from fenster's bitmask
+- Returns `null` for unmapped key indices
+- Self-contained module — does not depend on UiRenderer's `SHIFTED_SYMBOLS`
+
+#### 7. Window
 
 The window wrapper and event loop coordinator:
 
 - Manages the `setInterval`-based event loop
 - Processes key events from UiRenderer and pushes sequences to InputStream
+- Emits `keydown`/`keyup` events with `NativeKeyboardEvent` payload
 - Handles Ctrl+C (SIGINT) with configurable behavior
-- Emits events: `close`, `resize`, `key`, `sigint`
+- Emits events: `close`, `resize`, `keydown`, `keyup`, `sigint`
 - Provides `createStreams()` factory function for creating all components
 
-#### 7. Fenster FFI Bindings
+#### 8. Fenster FFI Bindings
 
 FFI bindings to the fenster native bridge via koffi:
 
@@ -264,12 +275,31 @@ window.on("close", () => {
 window.on("resize", (dims) => {
   /* { columns, rows } */
 });
-window.on("key", (event) => {
-  /* { keyIndex, pressed } */
+window.on("keydown", (event: NativeKeyboardEvent) => {
+  /* key press event */
+  console.log(event.key, event.code, event.ctrlKey);
+});
+window.on("keyup", (event: NativeKeyboardEvent) => {
+  /* key release event */
 });
 window.on("sigint", () => {
   /* Ctrl+C pressed */
 });
+```
+
+#### NativeKeyboardEvent
+
+```typescript
+interface NativeKeyboardEvent {
+  readonly key: string;        // Key value: "a", "A", "Enter", "ArrowUp", "!"
+  readonly code: string;       // Physical key code: "KeyA", "Digit1", "ArrowUp"
+  readonly ctrlKey: boolean;
+  readonly shiftKey: boolean;
+  readonly altKey: boolean;
+  readonly metaKey: boolean;
+  readonly repeat: false;      // Always false (fenster only reports transitions)
+  readonly type: "keydown" | "keyup";
+}
 ```
 
 ## ANSI Sequence Support
@@ -420,6 +450,7 @@ The fenster native library is bundled in the `native/` directory of the package.
 
 - AnsiParser: Comprehensive sequence parsing tests
 - BitmapFontRenderer: Glyph rendering and measurement
+- KeyboardEvent: Key mapping, shift state, modifiers, keydown/keyup
 - Color conversion: 256-color and RGB accuracy
 
 ### Integration Tests
@@ -470,6 +501,11 @@ ink-native/
 │   │   ├── glyphData.ts        # Generated: 6,014 Cozette glyph bitmaps
 │   │   ├── consts.ts
 │   │   └── types.ts            # GlyphBitmap
+│   ├── KeyboardEvent/
+│   │   ├── index.ts            # createKeyboardEvent()
+│   │   ├── consts.ts           # Fenster-to-key mapping tables
+│   │   ├── types.ts            # NativeKeyboardEvent, isNativeKeyboardEvent
+│   │   └── tests.ts
 │   └── Fenster/
 │       ├── index.ts            # FFI bindings to fenster via koffi
 │       ├── consts.ts           # Key indices, modifier bitmasks, library paths
