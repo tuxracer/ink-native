@@ -13,7 +13,14 @@ import { FENSTER_LIB_PATHS, INT32_BYTES, KEYS_ARRAY_SIZE } from "./consts";
 import type { FensterPointer } from "./types";
 
 /**
- * Resolve the bundled fenster library path for the current platform
+ * Resolve the bundled fenster library path for the current platform.
+ *
+ * Uses Node's module resolution via `import.meta.resolve` to locate the
+ * native library within the installed package. This works even when a
+ * consumer bundles their code, because the package (and its native files)
+ * still lives in node_modules.
+ *
+ * Falls back to resolving relative to this file for development.
  */
 const findFensterLibrary = (): string | null => {
 	const libName = FENSTER_LIB_PATHS[process.platform];
@@ -21,6 +28,14 @@ const findFensterLibrary = (): string | null => {
 		return null;
 	}
 
+	// When consumed as a dependency: resolve through Node's module system
+	try {
+		return fileURLToPath(import.meta.resolve(`ink-native/${libName}`));
+	} catch {
+		// Not installed as a dependency — running from source
+	}
+
+	// Development fallback: resolve relative to this file
 	const currentDir = dirname(fileURLToPath(import.meta.url));
 	const projectRoot = resolve(currentDir, "../..");
 	return resolve(projectRoot, libName);

@@ -9,7 +9,8 @@
     ".": {
       "import": "./dist/index.js",
       "types": "./dist/index.d.ts"
-    }
+    },
+    "./native/*": "./native/*"
   },
   "bin": {
     "ink-native": "./dist/cli.js"
