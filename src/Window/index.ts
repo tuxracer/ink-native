@@ -163,10 +163,21 @@ export class Window extends EventEmitter {
 	}
 
 	/**
+	 * Process pending events and present the framebuffer.
+	 *
+	 * Call this from your own render loop when the event loop is paused.
+	 * Polls OS events, emits keydown/keyup, handles resize and close —
+	 * equivalent to what the internal event loop does each iteration.
+	 */
+	processEvents(): void {
+		this.runEventLoopIteration();
+	}
+
+	/**
 	 * Pause the Ink event loop so the caller can take over rendering.
 	 *
-	 * While paused, call `renderer.processEventsAndPresent()` manually
-	 * in your own loop to poll events and present the framebuffer.
+	 * While paused, call `window.processEvents()` from your own loop
+	 * to poll events and present the framebuffer.
 	 */
 	pause(): void {
 		if (this.paused) {
