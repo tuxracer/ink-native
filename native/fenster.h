@@ -172,6 +172,24 @@ FENSTER_API int fenster_loop(struct fenster *f) {
     f->mod = (mod & 0xc) | ((mod & 1) << 1) | ((mod >> 1) & 1);
     return 0;
   }
+  case 12: { /* NSEventTypeFlagsChanged — modifier key press/release */
+    NSUInteger k = msg(NSUInteger, ev, "keyCode");
+    NSUInteger flags = msg(NSUInteger, ev, "modifierFlags");
+    NSUInteger mod = flags >> 17;
+    f->mod = (mod & 0xc) | ((mod & 1) << 1) | ((mod >> 1) & 1);
+    /* Device-dependent flags distinguish left/right modifiers */
+    switch (k) {
+    case 56: f->keys[128] = !!(flags & 0x00000002); break; /* Left Shift */
+    case 60: f->keys[129] = !!(flags & 0x00000004); break; /* Right Shift */
+    case 59: f->keys[130] = !!(flags & 0x00000001); break; /* Left Control */
+    case 62: f->keys[131] = !!(flags & 0x00002000); break; /* Right Control */
+    case 58: f->keys[132] = !!(flags & 0x00000020); break; /* Left Alt */
+    case 61: f->keys[133] = !!(flags & 0x00000040); break; /* Right Alt */
+    case 55: f->keys[134] = !!(flags & 0x00000008); break; /* Left Meta */
+    case 54: f->keys[135] = !!(flags & 0x00000010); break; /* Right Meta */
+    }
+    return 0;
+  }
   }
   msg1(void, NSApp, "sendEvent:", id, ev);
   /* Poll content view frame for resize */
@@ -240,7 +258,17 @@ static LRESULT CALLBACK fenster_wndproc(HWND hwnd, UINT msg, WPARAM wParam,
              ((GetKeyState(VK_SHIFT) & 0x8000) >> 14) |
              ((GetKeyState(VK_MENU) & 0x8000) >> 13) |
              (((GetKeyState(VK_LWIN) | GetKeyState(VK_RWIN)) & 0x8000) >> 12);
-    f->keys[FENSTER_KEYCODES[HIWORD(lParam) & 0x1ff]] = !((lParam >> 31) & 1);
+    int pressed = !((lParam >> 31) & 1);
+    f->keys[FENSTER_KEYCODES[HIWORD(lParam) & 0x1ff]] = pressed;
+    /* Left/right modifier key tracking */
+    f->keys[128] = !!(GetKeyState(VK_LSHIFT) & 0x8000);
+    f->keys[129] = !!(GetKeyState(VK_RSHIFT) & 0x8000);
+    f->keys[130] = !!(GetKeyState(VK_LCONTROL) & 0x8000);
+    f->keys[131] = !!(GetKeyState(VK_RCONTROL) & 0x8000);
+    f->keys[132] = !!(GetKeyState(VK_LMENU) & 0x8000);
+    f->keys[133] = !!(GetKeyState(VK_RMENU) & 0x8000);
+    f->keys[134] = !!(GetKeyState(VK_LWIN) & 0x8000);
+    f->keys[135] = !!(GetKeyState(VK_RWIN) & 0x8000);
   } break;
   case WM_SIZE:
     f->width = LOWORD(lParam);
@@ -320,7 +348,7 @@ FENSTER_API int fenster_loop(struct fenster *f) {
 }
 #else
 // clang-format off
-static int FENSTER_KEYCODES[124] = {XK_BackSpace,8,XK_Delete,127,XK_Down,18,XK_End,5,XK_Escape,27,XK_Home,2,XK_Insert,26,XK_Left,20,XK_Page_Down,4,XK_Page_Up,3,XK_Return,10,XK_Right,19,XK_Tab,9,XK_Up,17,XK_apostrophe,39,XK_backslash,92,XK_bracketleft,91,XK_bracketright,93,XK_comma,44,XK_equal,61,XK_grave,96,XK_minus,45,XK_period,46,XK_semicolon,59,XK_slash,47,XK_space,32,XK_a,65,XK_b,66,XK_c,67,XK_d,68,XK_e,69,XK_f,70,XK_g,71,XK_h,72,XK_i,73,XK_j,74,XK_k,75,XK_l,76,XK_m,77,XK_n,78,XK_o,79,XK_p,80,XK_q,81,XK_r,82,XK_s,83,XK_t,84,XK_u,85,XK_v,86,XK_w,87,XK_x,88,XK_y,89,XK_z,90,XK_0,48,XK_1,49,XK_2,50,XK_3,51,XK_4,52,XK_5,53,XK_6,54,XK_7,55,XK_8,56,XK_9,57};
+static int FENSTER_KEYCODES[140] = {XK_BackSpace,8,XK_Delete,127,XK_Down,18,XK_End,5,XK_Escape,27,XK_Home,2,XK_Insert,26,XK_Left,20,XK_Page_Down,4,XK_Page_Up,3,XK_Return,10,XK_Right,19,XK_Tab,9,XK_Up,17,XK_apostrophe,39,XK_backslash,92,XK_bracketleft,91,XK_bracketright,93,XK_comma,44,XK_equal,61,XK_grave,96,XK_minus,45,XK_period,46,XK_semicolon,59,XK_slash,47,XK_space,32,XK_a,65,XK_b,66,XK_c,67,XK_d,68,XK_e,69,XK_f,70,XK_g,71,XK_h,72,XK_i,73,XK_j,74,XK_k,75,XK_l,76,XK_m,77,XK_n,78,XK_o,79,XK_p,80,XK_q,81,XK_r,82,XK_s,83,XK_t,84,XK_u,85,XK_v,86,XK_w,87,XK_x,88,XK_y,89,XK_z,90,XK_0,48,XK_1,49,XK_2,50,XK_3,51,XK_4,52,XK_5,53,XK_6,54,XK_7,55,XK_8,56,XK_9,57,XK_Shift_L,128,XK_Shift_R,129,XK_Control_L,130,XK_Control_R,131,XK_Alt_L,132,XK_Alt_R,133,XK_Super_L,134,XK_Super_R,135};
 // clang-format on
 FENSTER_API int fenster_open(struct fenster *f) {
   f->dpy = XOpenDisplay(NULL);
@@ -363,7 +391,7 @@ FENSTER_API int fenster_loop(struct fenster *f) {
     case KeyRelease: {
       int m = ev.xkey.state;
       int k = XkbKeycodeToKeysym(f->dpy, ev.xkey.keycode, 0, 0);
-      for (unsigned int i = 0; i < 124; i += 2) {
+      for (unsigned int i = 0; i < 140; i += 2) {
         if (FENSTER_KEYCODES[i] == k) {
           f->keys[FENSTER_KEYCODES[i + 1]] = (ev.type == KeyPress);
           break;

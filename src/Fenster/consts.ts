@@ -127,6 +127,16 @@ export const FENSTER_KEY_BRACKET_RIGHT = 93;
 /** Grave/backtick key */
 export const FENSTER_KEY_GRAVE = 96;
 
+// Modifier keys (left/right, indices 128-135)
+export const FENSTER_KEY_SHIFT_LEFT = 128;
+export const FENSTER_KEY_SHIFT_RIGHT = 129;
+export const FENSTER_KEY_CONTROL_LEFT = 130;
+export const FENSTER_KEY_CONTROL_RIGHT = 131;
+export const FENSTER_KEY_ALT_LEFT = 132;
+export const FENSTER_KEY_ALT_RIGHT = 133;
+export const FENSTER_KEY_META_LEFT = 134;
+export const FENSTER_KEY_META_RIGHT = 135;
+
 // =============================================================================
 // Modifier Bitmasks (fenster mod field)
 // =============================================================================

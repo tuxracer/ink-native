@@ -16,6 +16,8 @@ import {
 	FENSTER_KEY_8,
 	FENSTER_KEY_9,
 	FENSTER_KEY_A,
+	FENSTER_KEY_ALT_LEFT,
+	FENSTER_KEY_ALT_RIGHT,
 	FENSTER_KEY_APOSTROPHE,
 	FENSTER_KEY_B,
 	FENSTER_KEY_BACKSLASH,
@@ -24,6 +26,8 @@ import {
 	FENSTER_KEY_BRACKET_RIGHT,
 	FENSTER_KEY_C,
 	FENSTER_KEY_COMMA,
+	FENSTER_KEY_CONTROL_LEFT,
+	FENSTER_KEY_CONTROL_RIGHT,
 	FENSTER_KEY_D,
 	FENSTER_KEY_DELETE,
 	FENSTER_KEY_DOWN,
@@ -43,6 +47,8 @@ import {
 	FENSTER_KEY_L,
 	FENSTER_KEY_LEFT,
 	FENSTER_KEY_M,
+	FENSTER_KEY_META_LEFT,
+	FENSTER_KEY_META_RIGHT,
 	FENSTER_KEY_MINUS,
 	FENSTER_KEY_N,
 	FENSTER_KEY_O,
@@ -56,6 +62,8 @@ import {
 	FENSTER_KEY_RIGHT,
 	FENSTER_KEY_S,
 	FENSTER_KEY_SEMICOLON,
+	FENSTER_KEY_SHIFT_LEFT,
+	FENSTER_KEY_SHIFT_RIGHT,
 	FENSTER_KEY_SLASH,
 	FENSTER_KEY_SPACE,
 	FENSTER_KEY_T,
@@ -144,6 +152,16 @@ export const FENSTER_TO_CODE: Record<number, string> = {
 	[FENSTER_KEY_BACKSLASH]: "Backslash",
 	[FENSTER_KEY_BRACKET_RIGHT]: "BracketRight",
 	[FENSTER_KEY_GRAVE]: "Backquote",
+
+	// Modifier keys (left/right)
+	[FENSTER_KEY_SHIFT_LEFT]: "ShiftLeft",
+	[FENSTER_KEY_SHIFT_RIGHT]: "ShiftRight",
+	[FENSTER_KEY_CONTROL_LEFT]: "ControlLeft",
+	[FENSTER_KEY_CONTROL_RIGHT]: "ControlRight",
+	[FENSTER_KEY_ALT_LEFT]: "AltLeft",
+	[FENSTER_KEY_ALT_RIGHT]: "AltRight",
+	[FENSTER_KEY_META_LEFT]: "MetaLeft",
+	[FENSTER_KEY_META_RIGHT]: "MetaRight",
 };
 
 // =============================================================================
@@ -221,6 +239,16 @@ export const FENSTER_TO_KEY: Record<number, string> = {
 	[FENSTER_KEY_BACKSLASH]: "\\",
 	[FENSTER_KEY_BRACKET_RIGHT]: "]",
 	[FENSTER_KEY_GRAVE]: "`",
+
+	// Modifier keys (left/right)
+	[FENSTER_KEY_SHIFT_LEFT]: "Shift",
+	[FENSTER_KEY_SHIFT_RIGHT]: "Shift",
+	[FENSTER_KEY_CONTROL_LEFT]: "Control",
+	[FENSTER_KEY_CONTROL_RIGHT]: "Control",
+	[FENSTER_KEY_ALT_LEFT]: "Alt",
+	[FENSTER_KEY_ALT_RIGHT]: "Alt",
+	[FENSTER_KEY_META_LEFT]: "Meta",
+	[FENSTER_KEY_META_RIGHT]: "Meta",
 };
 
 // =============================================================================

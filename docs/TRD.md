@@ -159,6 +159,7 @@ Converts fenster key events into `NativeKeyboardEvent` objects:
 - Maps fenster key indices to `key` and `code` strings via lookup tables
 - Handles shift state to produce correct `key` values (e.g., `a` → `A`, `1` → `!`)
 - Derives modifier booleans (`ctrlKey`, `shiftKey`, `altKey`, `metaKey`) from fenster's bitmask
+- Supports modifier-only key events with left/right distinction (e.g., `ShiftLeft` vs `ShiftRight`)
 - Returns `null` for unmapped key indices
 - Self-contained module — does not depend on UiRenderer's `SHIFTED_SYMBOLS`
 
@@ -375,6 +376,26 @@ Fenster uses a polled `keys[256]` array instead of an event queue. UiRenderer di
 ### Modifier Bitmask
 
 Fenster reports modifiers as a bitmask: Ctrl=1, Shift=2, Alt=4, Meta=8.
+
+### Modifier Key Events
+
+Modifier keys fire `keydown`/`keyup` events with left/right distinction via dedicated key indices (128-135) in fenster's `keys[]` array:
+
+| Key            | `key`     | `code`         |
+| -------------- | --------- | -------------- |
+| Left Shift     | `Shift`   | `ShiftLeft`    |
+| Right Shift    | `Shift`   | `ShiftRight`   |
+| Left Control   | `Control` | `ControlLeft`  |
+| Right Control  | `Control` | `ControlRight` |
+| Left Alt       | `Alt`     | `AltLeft`      |
+| Right Alt      | `Alt`     | `AltRight`     |
+| Left Meta      | `Meta`    | `MetaLeft`     |
+| Right Meta     | `Meta`    | `MetaRight`    |
+
+Platform implementation:
+- **macOS**: Handles `NSEventTypeFlagsChanged` (event type 12) with device-dependent modifier flags to distinguish left/right
+- **Windows**: Polls `GetKeyState(VK_LSHIFT)` etc. during `WM_KEYDOWN`/`WM_KEYUP`
+- **Linux**: Maps `XK_Shift_L`, `XK_Shift_R`, etc. in the keysym lookup table
 
 ## HiDPI Handling
 

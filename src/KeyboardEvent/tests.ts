@@ -6,7 +6,11 @@ import { describe, expect, it } from "vitest";
 import {
 	FENSTER_KEY_0,
 	FENSTER_KEY_A,
+	FENSTER_KEY_ALT_LEFT,
+	FENSTER_KEY_ALT_RIGHT,
 	FENSTER_KEY_BACKSPACE,
+	FENSTER_KEY_CONTROL_LEFT,
+	FENSTER_KEY_CONTROL_RIGHT,
 	FENSTER_KEY_DELETE,
 	FENSTER_KEY_DOWN,
 	FENSTER_KEY_END,
@@ -15,11 +19,15 @@ import {
 	FENSTER_KEY_HOME,
 	FENSTER_KEY_INSERT,
 	FENSTER_KEY_LEFT,
+	FENSTER_KEY_META_LEFT,
+	FENSTER_KEY_META_RIGHT,
 	FENSTER_KEY_PAGEDOWN,
 	FENSTER_KEY_PAGEUP,
 	FENSTER_KEY_RETURN,
 	FENSTER_KEY_RIGHT,
 	FENSTER_KEY_SEMICOLON,
+	FENSTER_KEY_SHIFT_LEFT,
+	FENSTER_KEY_SHIFT_RIGHT,
 	FENSTER_KEY_SLASH,
 	FENSTER_KEY_SPACE,
 	FENSTER_KEY_TAB,
@@ -304,6 +312,82 @@ describe("createKeyboardEvent", () => {
 			);
 
 			expect(event?.type).toBe("keyup");
+		});
+	});
+
+	describe("modifier keys", () => {
+		it("should map left and right shift", () => {
+			const left = createKeyboardEvent(
+				{ keyIndex: FENSTER_KEY_SHIFT_LEFT, pressed: true },
+				FENSTER_MOD_SHIFT,
+			);
+			const right = createKeyboardEvent(
+				{ keyIndex: FENSTER_KEY_SHIFT_RIGHT, pressed: true },
+				FENSTER_MOD_SHIFT,
+			);
+
+			expect(left?.key).toBe("Shift");
+			expect(left?.code).toBe("ShiftLeft");
+			expect(right?.key).toBe("Shift");
+			expect(right?.code).toBe("ShiftRight");
+		});
+
+		it("should map left and right control", () => {
+			const left = createKeyboardEvent(
+				{ keyIndex: FENSTER_KEY_CONTROL_LEFT, pressed: true },
+				FENSTER_MOD_CTRL,
+			);
+			const right = createKeyboardEvent(
+				{ keyIndex: FENSTER_KEY_CONTROL_RIGHT, pressed: true },
+				FENSTER_MOD_CTRL,
+			);
+
+			expect(left?.key).toBe("Control");
+			expect(left?.code).toBe("ControlLeft");
+			expect(right?.key).toBe("Control");
+			expect(right?.code).toBe("ControlRight");
+		});
+
+		it("should map left and right alt", () => {
+			const left = createKeyboardEvent(
+				{ keyIndex: FENSTER_KEY_ALT_LEFT, pressed: true },
+				FENSTER_MOD_ALT,
+			);
+			const right = createKeyboardEvent(
+				{ keyIndex: FENSTER_KEY_ALT_RIGHT, pressed: true },
+				FENSTER_MOD_ALT,
+			);
+
+			expect(left?.key).toBe("Alt");
+			expect(left?.code).toBe("AltLeft");
+			expect(right?.key).toBe("Alt");
+			expect(right?.code).toBe("AltRight");
+		});
+
+		it("should map left and right meta", () => {
+			const left = createKeyboardEvent(
+				{ keyIndex: FENSTER_KEY_META_LEFT, pressed: true },
+				FENSTER_MOD_META,
+			);
+			const right = createKeyboardEvent(
+				{ keyIndex: FENSTER_KEY_META_RIGHT, pressed: true },
+				FENSTER_MOD_META,
+			);
+
+			expect(left?.key).toBe("Meta");
+			expect(left?.code).toBe("MetaLeft");
+			expect(right?.key).toBe("Meta");
+			expect(right?.code).toBe("MetaRight");
+		});
+
+		it("should emit keyup when modifier is released", () => {
+			const event = createKeyboardEvent(
+				{ keyIndex: FENSTER_KEY_SHIFT_LEFT, pressed: false },
+				0,
+			);
+
+			expect(event?.type).toBe("keyup");
+			expect(event?.key).toBe("Shift");
 		});
 	});
 
