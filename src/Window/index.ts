@@ -97,7 +97,9 @@ export class Window extends EventEmitter {
 						continue;
 					}
 
-					this.inputStream.pushKey(sequence);
+					if (!this.paused) {
+						this.inputStream.pushKey(sequence);
+					}
 				}
 
 				if (kbEvent) {
@@ -110,7 +112,9 @@ export class Window extends EventEmitter {
 
 		// Notify Ink of resize so it can re-render with new dimensions
 		if (resized) {
-			this.outputStream.notifyResize();
+			if (!this.paused) {
+				this.outputStream.notifyResize();
+			}
 			this.emit("resize", this.renderer.getDimensions());
 		}
 
@@ -174,10 +178,10 @@ export class Window extends EventEmitter {
 	}
 
 	/**
-	 * Pause the Ink event loop so the caller can take over rendering.
+	 * Pause Ink so the caller can take over rendering.
 	 *
-	 * While paused, call `window.processEvents()` from your own loop
-	 * to poll events and present the framebuffer.
+	 * The event loop keeps running — keydown, keyup, resize, and close
+	 * events continue to fire. Only Ink's input stream is paused.
 	 */
 	pause(): void {
 		if (this.paused) {
@@ -185,15 +189,10 @@ export class Window extends EventEmitter {
 		}
 
 		this.paused = true;
-
-		if (this.eventLoopHandle) {
-			clearInterval(this.eventLoopHandle);
-			this.eventLoopHandle = null;
-		}
 	}
 
 	/**
-	 * Resume the Ink event loop after pausing.
+	 * Resume Ink after pausing.
 	 */
 	resume(): void {
 		if (!this.paused) {
@@ -201,7 +200,6 @@ export class Window extends EventEmitter {
 		}
 
 		this.paused = false;
-		this.startEventLoop();
 	}
 
 	/**
