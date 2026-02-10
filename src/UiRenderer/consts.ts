@@ -65,11 +65,36 @@ export const RED_SHIFT = 16;
 /** Bit shift for green channel in ARGB format */
 export const GREEN_SHIFT = 8;
 
-/** Ctrl+key offset: 'A' (65) - 1 = 96, so ctrl+A = 65 - 96 = 1 */
-export const CTRL_KEY_OFFSET = 96;
+/** Ctrl+key offset: 'A' (65) - 1 = 64, so ctrl+A = 65 - 64 = 1 */
+export const CTRL_KEY_OFFSET = 64;
 
 /** Start of printable ASCII range */
 export const ASCII_PRINTABLE_START = 32;
 
 /** End of printable ASCII range */
 export const ASCII_PRINTABLE_END = 126;
+
+/** Shifted symbol map for US keyboard layout (unshifted ASCII → shifted character) */
+export const SHIFTED_SYMBOLS: Record<number, string> = {
+	48: ")", // 0 → )
+	49: "!", // 1 → !
+	50: "@", // 2 → @
+	51: "#", // 3 → #
+	52: "$", // 4 → $
+	53: "%", // 5 → %
+	54: "^", // 6 → ^
+	55: "&", // 7 → &
+	56: "*", // 8 → *
+	57: "(", // 9 → (
+	45: "_", // - → _
+	61: "+", // = → +
+	91: "{", // [ → {
+	93: "}", // ] → }
+	92: "|", // \ → |
+	59: ":", // ; → :
+	39: '"', // ' → "
+	96: "~", // ` → ~
+	44: "<", // , → <
+	46: ">", // . → >
+	47: "?", // / → ?
+};

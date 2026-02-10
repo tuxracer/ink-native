@@ -21,6 +21,7 @@ import {
 	FENSTER_KEY_END,
 	FENSTER_KEY_ESCAPE,
 	FENSTER_KEY_HOME,
+	FENSTER_KEY_INSERT,
 	FENSTER_KEY_LEFT,
 	FENSTER_KEY_PAGEDOWN,
 	FENSTER_KEY_PAGEUP,
@@ -55,6 +56,7 @@ import {
 	MIN_COLUMNS,
 	MIN_ROWS,
 	RED_SHIFT,
+	SHIFTED_SYMBOLS,
 	STRIKETHROUGH_POSITION,
 	TEXT_DECORATION_THICKNESS,
 	UNDERLINE_POSITION,
@@ -400,6 +402,8 @@ export class UiRenderer {
 				return shift ? "\x1b[Z" : "\t";
 			case FENSTER_KEY_DELETE:
 				return "\x1b[3~";
+			case FENSTER_KEY_INSERT:
+				return "\x1b[2~";
 			case FENSTER_KEY_SPACE:
 				return ctrl ? "\x00" : " ";
 		}
@@ -424,11 +428,18 @@ export class UiRenderer {
 
 		// Printable ASCII characters
 		if (key >= ASCII_PRINTABLE_START && key <= ASCII_PRINTABLE_END) {
-			let char = String.fromCharCode(key);
-			if (shift && key >= FENSTER_KEY_A && key <= FENSTER_KEY_Z) {
-				char = char.toUpperCase();
+			if (key >= FENSTER_KEY_A && key <= FENSTER_KEY_Z) {
+				return shift
+					? String.fromCharCode(key)
+					: String.fromCharCode(key).toLowerCase();
 			}
-			return char;
+			if (shift) {
+				const shifted = SHIFTED_SYMBOLS[key];
+				if (shifted) {
+					return shifted;
+				}
+			}
+			return String.fromCharCode(key);
 		}
 
 		return null;
