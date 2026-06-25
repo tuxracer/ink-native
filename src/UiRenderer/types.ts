@@ -1,4 +1,5 @@
 import type { FensterKeyEvent } from "../Fenster";
+import type { PointerSample } from "../PointerEvent";
 
 /** Options for creating a UiRenderer */
 export interface UiRendererOptions {
@@ -32,4 +33,6 @@ export interface ProcessEventsResult {
 	mod: number;
 	/** Whether the window was resized this frame */
 	resized: boolean;
+	/** Raw mouse sample for this frame */
+	pointer: PointerSample;
 }

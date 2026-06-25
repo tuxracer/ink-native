@@ -6,7 +6,12 @@
  * No GPU, no textures -- pure TypeScript pixel manipulation.
  */
 
-import { AnsiParser, type Color, type DrawCommand } from "../AnsiParser";
+import {
+	AnsiParser,
+	type Color,
+	type DrawCommand,
+	type MouseMode,
+} from "../AnsiParser";
 import { BitmapFontRenderer, GLYPH_HEIGHT, GLYPH_WIDTH } from "../BitmapFont";
 import { COLOR_CHANNEL_MAX } from "../consts";
 import type { FensterKeyEvent, FensterPointer } from "../Fenster";
@@ -36,6 +41,7 @@ import {
 	getFenster,
 	KEYS_ARRAY_SIZE,
 } from "../Fenster";
+import type { PointerSample } from "../PointerEvent";
 import {
 	ALPHA_MASK,
 	ASCII_PRINTABLE_END,
@@ -75,6 +81,20 @@ export * from "./types";
  */
 export const packColor = (r: number, g: number, b: number): number =>
 	(ALPHA_MASK | (r << RED_SHIFT) | (g << GREEN_SHIFT) | b) >>> 0;
+
+/**
+ * Convert a logical pixel position to 1-based cell coordinates, clamped to
+ * the grid. Glyph dimensions are logical, matching fenster's logical x/y.
+ */
+export const pixelToCell = (
+	x: number,
+	y: number,
+	columns: number,
+	rows: number,
+): { column: number; row: number } => ({
+	column: Math.min(columns, Math.max(1, Math.floor(x / GLYPH_WIDTH) + 1)),
+	row: Math.min(rows, Math.max(1, Math.floor(y / GLYPH_HEIGHT) + 1)),
+});
 
 /**
  * Adjust color brightness by a multiplier
@@ -307,6 +327,20 @@ export class UiRenderer {
 
 		const mod = this.fenster.getMod(this.fensterPtr);
 
+		// Sample mouse position, buttons, and wheel for this frame
+		const mouse = this.fenster.getMouse(this.fensterPtr);
+		const wheel = this.fenster.getWheel(this.fensterPtr);
+		const cell = pixelToCell(mouse.x, mouse.y, this.columns, this.rows);
+		const pointer: PointerSample = {
+			x: mouse.x,
+			y: mouse.y,
+			column: cell.column,
+			row: cell.row,
+			buttons: mouse.buttons,
+			wheelDx: wheel.dx,
+			wheelDy: wheel.dy,
+		};
+
 		// Check for resize
 		let resized = false;
 		const resizeResult = this.fenster.getResized(this.fensterPtr);
@@ -315,7 +349,7 @@ export class UiRenderer {
 			resized = true;
 		}
 
-		return { keyEvents, mod, resized };
+		return { keyEvents, mod, resized, pointer };
 	}
 
 	/**
@@ -507,6 +541,13 @@ export class UiRenderer {
 	getCursorPos(): { x: number; y: number } {
 		const cursor = this.ansiParser.getCursor();
 		return { x: cursor.col, y: cursor.row };
+	}
+
+	/**
+	 * Get the current mouse reporting mode parsed from Ink's output.
+	 */
+	getMouseMode(): MouseMode {
+		return this.ansiParser.getMouseMode();
 	}
 
 	/**

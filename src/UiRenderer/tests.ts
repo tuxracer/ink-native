@@ -3,7 +3,7 @@
  */
 
 import { describe, expect, it } from "vitest";
-import { packColor } from ".";
+import { packColor, pixelToCell } from ".";
 
 describe("packColor", () => {
 	it("should pack red into 0xAARRGGBB format", () => {
@@ -29,5 +29,22 @@ describe("packColor", () => {
 	it("should pack mixed colors correctly", () => {
 		// R=0x12, G=0x34, B=0x56 → 0xFF123456
 		expect(packColor(0x12, 0x34, 0x56)).toBe(0xff123456);
+	});
+});
+
+describe("pixelToCell", () => {
+	it("maps pixel position to 1-based cell using glyph size", () => {
+		// GLYPH_WIDTH = 6, GLYPH_HEIGHT = 13
+		expect(pixelToCell(0, 0, 80, 24)).toEqual({ column: 1, row: 1 });
+		expect(pixelToCell(6, 13, 80, 24)).toEqual({ column: 2, row: 2 });
+		expect(pixelToCell(11, 12, 80, 24)).toEqual({ column: 2, row: 1 });
+	});
+
+	it("clamps to the grid bounds", () => {
+		expect(pixelToCell(-5, -5, 80, 24)).toEqual({ column: 1, row: 1 });
+		expect(pixelToCell(100000, 100000, 80, 24)).toEqual({
+			column: 80,
+			row: 24,
+		});
 	});
 });
