@@ -64,17 +64,18 @@ describe("Window pause/resume", () => {
 		expect(win.isPaused()).toBe(true);
 	});
 
-	it("should stop the event loop when paused", () => {
+	it("keeps the event loop running when paused", () => {
 		win.pause();
 
-		// Advance time — the event loop should NOT fire
+		// The loop keeps running while paused so keyboard and pointer events
+		// still fire; only Ink's stdin is gated by the paused flag.
 		const renderer = (
 			win as unknown as { renderer: ReturnType<typeof createMockRenderer> }
 		).renderer;
 		renderer.processEventsAndPresent.mockClear();
 		vi.advanceTimersByTime(100);
 
-		expect(renderer.processEventsAndPresent).not.toHaveBeenCalled();
+		expect(renderer.processEventsAndPresent).toHaveBeenCalled();
 	});
 
 	it("should resume the event loop after calling resume()", () => {
