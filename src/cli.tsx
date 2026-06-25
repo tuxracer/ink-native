@@ -71,10 +71,35 @@ const { stdin, stdout, window } = createStreams({
 
 const initialFrameRate = window.getFrameRate();
 
-render(<DemoApp scaleFactor={1} initialFrameRate={initialFrameRate} />, {
-	stdin: stdin as unknown as NodeJS.ReadStream,
-	stdout: stdout as unknown as NodeJS.WriteStream,
-});
+/** Pointer event names forwarded to the demo's Mouse tab */
+const POINTER_EVENT_TYPES = [
+	"pointermove",
+	"pointerdown",
+	"pointerup",
+	"click",
+	"wheel",
+];
+
+render(
+	<DemoApp
+		scaleFactor={1}
+		initialFrameRate={initialFrameRate}
+		onPointerEvent={(callback) => {
+			for (const type of POINTER_EVENT_TYPES) {
+				window.on(type, callback);
+			}
+			return () => {
+				for (const type of POINTER_EVENT_TYPES) {
+					window.off(type, callback);
+				}
+			};
+		}}
+	/>,
+	{
+		stdin: stdin as unknown as NodeJS.ReadStream,
+		stdout: stdout as unknown as NodeJS.WriteStream,
+	},
+);
 
 window.on("close", () => process.exit(0));
 process.on("SIGINT", () => {

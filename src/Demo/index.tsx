@@ -7,6 +7,12 @@
 
 import { Box, Newline, Spacer, Text, useInput } from "ink";
 import { useEffect, useState } from "react";
+import {
+	BUTTON_BIT_LEFT,
+	BUTTON_BIT_MIDDLE,
+	BUTTON_BIT_RIGHT,
+	type NativePointerEvent,
+} from "../PointerEvent";
 
 // ============================================================================
 // Constants
@@ -317,6 +323,75 @@ const DynamicTab = ({
 	);
 };
 
+/** Live pointer state tracked by the demo */
+interface PointerState {
+	x: number;
+	y: number;
+	column: number;
+	row: number;
+	buttons: number;
+	lastClick: { column: number; row: number } | null;
+	wheelTotal: number;
+}
+
+/** Demonstrates live mouse / pointer events */
+const MouseTab = ({
+	x,
+	y,
+	column,
+	row,
+	buttons,
+	lastClick,
+	wheelTotal,
+}: PointerState) => {
+	const button = (bit: number, label: string) => {
+		const pressed = (buttons & bit) !== 0;
+		return (
+			<Text color={pressed ? "green" : "gray"}>
+				{pressed ? "●" : "○"} {label}
+			</Text>
+		);
+	};
+
+	return (
+		<Box flexDirection="column" gap={1}>
+			<Text bold>Mouse / Pointer Events</Text>
+			<Box flexDirection="column" paddingLeft={1}>
+				<Text>
+					Position:{" "}
+					<Text color="cyan">
+						({x}, {y})
+					</Text>{" "}
+					px
+				</Text>
+				<Text>
+					Cell:{" "}
+					<Text color="cyan">
+						({column}, {row})
+					</Text>
+				</Text>
+				<Box gap={2}>
+					<Text>Buttons:</Text>
+					{button(BUTTON_BIT_LEFT, "left")}
+					{button(BUTTON_BIT_RIGHT, "right")}
+					{button(BUTTON_BIT_MIDDLE, "middle")}
+				</Box>
+				<Text>
+					Last click:{" "}
+					<Text color="yellow">
+						{lastClick ? `(${lastClick.column}, ${lastClick.row})` : "none"}
+					</Text>
+				</Text>
+				<Text>
+					Wheel total: <Text color="magenta">{wheelTotal}</Text>
+				</Text>
+				<Newline />
+				<Text dimColor>Move, click, and scroll over the window.</Text>
+			</Box>
+		</Box>
+	);
+};
+
 // ============================================================================
 // Menu Configuration
 // ============================================================================
@@ -327,6 +402,7 @@ const TAB_COLORS = 1;
 const TAB_EXTENDED = 2;
 const TAB_LAYOUT = 3;
 const TAB_DYNAMIC = 4;
+const TAB_MOUSE = 5;
 
 /** Main menu items */
 const MENU_ITEMS = [
@@ -335,6 +411,7 @@ const MENU_ITEMS = [
 	{ id: "extended", label: "Extended Colors" },
 	{ id: "layout", label: "Layouts" },
 	{ id: "dynamic", label: "Dynamic" },
+	{ id: "mouse", label: "Mouse" },
 ];
 
 // ============================================================================
@@ -348,6 +425,10 @@ export interface DemoAppProps {
 	initialFrameRate: number;
 	/** Callback to subscribe to frame rate changes */
 	onFrameRateChange?: (callback: (frameRate: number) => void) => () => void;
+	/** Callback to subscribe to pointer events from the window */
+	onPointerEvent?: (
+		callback: (event: NativePointerEvent) => void,
+	) => () => void;
 }
 
 /**
@@ -360,11 +441,21 @@ export const DemoApp = ({
 	scaleFactor,
 	initialFrameRate,
 	onFrameRateChange,
+	onPointerEvent,
 }: DemoAppProps) => {
 	const [selectedTab, setSelectedTab] = useState(0);
 	const [elapsed, setElapsed] = useState(0);
 	const [progress, setProgress] = useState(0);
 	const [frameRate, setFrameRate] = useState(initialFrameRate);
+	const [pointer, setPointer] = useState<PointerState>({
+		x: 0,
+		y: 0,
+		column: 1,
+		row: 1,
+		buttons: 0,
+		lastClick: null,
+		wheelTotal: 0,
+	});
 
 	useEffect(() => {
 		const timer = setInterval(() => {
@@ -380,6 +471,30 @@ export const DemoApp = ({
 		}
 		return onFrameRateChange(setFrameRate);
 	}, [onFrameRateChange]);
+
+	useEffect(() => {
+		if (!onPointerEvent) {
+			return;
+		}
+		return onPointerEvent((event) => {
+			setPointer((prev) => ({
+				...prev,
+				x: event.clientX,
+				y: event.clientY,
+				column: event.column,
+				row: event.row,
+				buttons: event.buttons,
+				lastClick:
+					event.type === "click"
+						? { column: event.column, row: event.row }
+						: prev.lastClick,
+				wheelTotal:
+					event.type === "wheel"
+						? prev.wheelTotal + event.deltaY
+						: prev.wheelTotal,
+			}));
+		});
+	}, [onPointerEvent]);
 
 	useInput((input, key) => {
 		if (key.leftArrow || input === "h") {
@@ -446,6 +561,7 @@ export const DemoApp = ({
 				{selectedTab === TAB_DYNAMIC && (
 					<DynamicTab elapsed={elapsed} progress={progress} />
 				)}
+				{selectedTab === TAB_MOUSE && <MouseTab {...pointer} />}
 			</Box>
 
 			{/* Footer */}
