@@ -27,7 +27,9 @@ struct fenster {
   int mod;       /* mod is 4 bits mask, ctrl=1, shift=2, alt=4, meta=8 */
   int x;
   int y;
-  int mouse;
+  int mouse;     /* buttons bitmask: left=1, right=2, middle=4 */
+  int wheel_x;   /* accumulated horizontal wheel delta, reset on read */
+  int wheel_y;   /* accumulated vertical wheel delta (+ = down), reset on read */
   float scale;      /* backing scale factor (1.0 normal, 2.0 Retina) */
   int phys_width;   /* width * scale */
   int phys_height;  /* height * scale */
@@ -125,6 +127,9 @@ FENSTER_API int fenster_open(struct fenster *f) {
   msg(void, f->wnd, "center");
   msg1(void, NSApp, "activateIgnoringOtherApps:", BOOL, YES);
 
+  /* Receive mouse-moved events even when no button is held */
+  msg1(void, f->wnd, "setAcceptsMouseMovedEvents:", BOOL, YES);
+
   /* Detect Retina backing scale factor */
   CGFloat s = ((CGFloat(*)(id, SEL))objc_msgSend)(f->wnd,
       sel_getUid("backingScaleFactor"));
@@ -151,14 +156,36 @@ FENSTER_API int fenster_loop(struct fenster *f) {
     return 0;
   NSUInteger evtype = msg(NSUInteger, ev, "type");
   switch (evtype) {
-  case 1: /* NSEventTypeMouseDown */
+  case 1: /* NSEventTypeLeftMouseDown */
     f->mouse |= 1;
     break;
-  case 2: /* NSEventTypeMouseUp*/
+  case 2: /* NSEventTypeLeftMouseUp */
     f->mouse &= ~1;
     break;
-  case 5:
-  case 6: { /* NSEventTypeMouseMoved */
+  case 3: /* NSEventTypeRightMouseDown */
+    f->mouse |= 2;
+    break;
+  case 4: /* NSEventTypeRightMouseUp */
+    f->mouse &= ~2;
+    break;
+  case 25: /* NSEventTypeOtherMouseDown (middle) */
+    f->mouse |= 4;
+    break;
+  case 26: /* NSEventTypeOtherMouseUp (middle) */
+    f->mouse &= ~4;
+    break;
+  case 22: { /* NSEventTypeScrollWheel */
+    double dy = msg(double, ev, "scrollingDeltaY");
+    double dx = msg(double, ev, "scrollingDeltaX");
+    /* macOS natural scroll: positive deltaY = up. DOM wants + = down. */
+    f->wheel_y += (dy < 0) - (dy > 0);
+    f->wheel_x += (dx > 0) - (dx < 0);
+    return 0;
+  }
+  case 5:  /* NSEventTypeMouseMoved */
+  case 6:  /* NSEventTypeLeftMouseDragged */
+  case 7:  /* NSEventTypeRightMouseDragged */
+  case 27: { /* NSEventTypeOtherMouseDragged */
     CGPoint xy = msg(CGPoint, ev, "locationInWindow");
     f->x = (int)xy.x;
     f->y = (int)(f->height - xy.y);
@@ -245,9 +272,17 @@ static LRESULT CALLBACK fenster_wndproc(HWND hwnd, UINT msg, WPARAM wParam,
   case WM_CLOSE:
     DestroyWindow(hwnd);
     break;
-  case WM_LBUTTONDOWN:
-  case WM_LBUTTONUP:
-    f->mouse = (msg == WM_LBUTTONDOWN);
+  case WM_LBUTTONDOWN: f->mouse |= 1; break;
+  case WM_LBUTTONUP:   f->mouse &= ~1; break;
+  case WM_RBUTTONDOWN: f->mouse |= 2; break;
+  case WM_RBUTTONUP:   f->mouse &= ~2; break;
+  case WM_MBUTTONDOWN: f->mouse |= 4; break;
+  case WM_MBUTTONUP:   f->mouse &= ~4; break;
+  case WM_MOUSEWHEEL:
+    f->wheel_y += (GET_WHEEL_DELTA_WPARAM(wParam) < 0) ? 1 : -1;
+    break;
+  case WM_MOUSEHWHEEL:
+    f->wheel_x += (GET_WHEEL_DELTA_WPARAM(wParam) > 0) ? 1 : -1;
     break;
   case WM_MOUSEMOVE:
     f->y = HIWORD(lParam), f->x = LOWORD(lParam);
@@ -381,9 +416,33 @@ FENSTER_API int fenster_loop(struct fenster *f) {
     XNextEvent(f->dpy, &ev);
     switch (ev.type) {
     case ButtonPress:
-    case ButtonRelease:
-      f->mouse = (ev.type == ButtonPress);
+    case ButtonRelease: {
+      int down = (ev.type == ButtonPress);
+      switch (ev.xbutton.button) {
+      case 1: /* left */
+        if (down) f->mouse |= 1; else f->mouse &= ~1;
+        break;
+      case 2: /* middle */
+        if (down) f->mouse |= 4; else f->mouse &= ~4;
+        break;
+      case 3: /* right */
+        if (down) f->mouse |= 2; else f->mouse &= ~2;
+        break;
+      case 4: /* wheel up */
+        if (down) f->wheel_y -= 1;
+        break;
+      case 5: /* wheel down */
+        if (down) f->wheel_y += 1;
+        break;
+      case 6: /* wheel left */
+        if (down) f->wheel_x -= 1;
+        break;
+      case 7: /* wheel right */
+        if (down) f->wheel_x += 1;
+        break;
+      }
       break;
+    }
     case MotionNotify:
       f->x = ev.xmotion.x, f->y = ev.xmotion.y;
       break;

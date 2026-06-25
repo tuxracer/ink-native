@@ -127,6 +127,19 @@ int *fenster_bridge_get_keys(fenster_bridge *fb) { return fb->f.keys; }
 
 int fenster_bridge_get_mod(fenster_bridge *fb) { return fb->f.mod; }
 
+void fenster_bridge_get_mouse(fenster_bridge *fb, int *x, int *y, int *buttons) {
+  *x = fb->f.x;
+  *y = fb->f.y;
+  *buttons = fb->f.mouse;
+}
+
+void fenster_bridge_get_wheel(fenster_bridge *fb, int *dx, int *dy) {
+  *dx = fb->f.wheel_x;
+  *dy = fb->f.wheel_y;
+  fb->f.wheel_x = 0;
+  fb->f.wheel_y = 0;
+}
+
 void fenster_bridge_get_size(fenster_bridge *fb, int *w, int *h) {
   *w = fb->f.width;
   *h = fb->f.height;
