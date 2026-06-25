@@ -40,6 +40,10 @@ pnpm generate-font   # Regenerate bitmap font data from Cozette.bdf
 
 **Documentation**: When making major changes (architecture, new modules, API changes, file structure), update [docs/TRD.md](docs/TRD.md) to keep the technical reference accurate.
 
+## Git
+
+- **Never create merge commits**: When integrating a branch, always rebase. Use `git rebase`, `git pull --rebase`, or `git merge --ff-only` to keep history linear. Never run a plain `git merge` that produces a merge commit.
+
 ## Tech Stack
 
 - **Runtime**: Node.js 24+
