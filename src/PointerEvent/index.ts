@@ -12,7 +12,12 @@ import {
 	FENSTER_MOD_META,
 	FENSTER_MOD_SHIFT,
 } from "../Fenster";
-import { BUTTON_BITS, BUTTON_INDEX_BY_BIT, NO_BUTTON } from "./consts";
+import {
+	BUTTON_BIT_LEFT,
+	BUTTON_BITS,
+	BUTTON_INDEX_BY_BIT,
+	NO_BUTTON,
+} from "./consts";
 import type { NativePointerEvent, PointerSample, PointerUpdate } from "./types";
 
 export * from "./consts";
@@ -44,6 +49,7 @@ const ZERO_SAMPLE: PointerSample = {
 
 export class PointerTracker {
 	private prev: PointerSample | null = null;
+	private leftDownCell: { column: number; row: number } | null = null;
 
 	/**
 	 * Diff a new sample against the previous frame and return the DOM events
@@ -75,11 +81,36 @@ export class PointerTracker {
 				events.push(
 					this.build("pointerdown", sample, BUTTON_INDEX_BY_BIT[bit]!, mods),
 				);
+				if (bit === BUTTON_BIT_LEFT) {
+					this.leftDownCell = { column: sample.column, row: sample.row };
+				}
 			} else if (was && !now) {
 				events.push(
 					this.build("pointerup", sample, BUTTON_INDEX_BY_BIT[bit]!, mods),
 				);
+				if (
+					bit === BUTTON_BIT_LEFT &&
+					this.leftDownCell !== null &&
+					this.leftDownCell.column === sample.column &&
+					this.leftDownCell.row === sample.row
+				) {
+					events.push(
+						this.build("click", sample, BUTTON_INDEX_BY_BIT[bit]!, mods),
+					);
+				}
+				if (bit === BUTTON_BIT_LEFT) {
+					this.leftDownCell = null;
+				}
 			}
+		}
+
+		if (sample.wheelDy !== 0 || sample.wheelDx !== 0) {
+			events.push(
+				this.build("wheel", sample, NO_BUTTON, mods, {
+					deltaX: sample.wheelDx,
+					deltaY: sample.wheelDy,
+				}),
+			);
 		}
 
 		this.prev = sample;
@@ -88,6 +119,7 @@ export class PointerTracker {
 
 	reset(): void {
 		this.prev = null;
+		this.leftDownCell = null;
 	}
 
 	private build(
@@ -95,7 +127,12 @@ export class PointerTracker {
 		sample: PointerSample,
 		button: number,
 		mods: Modifiers,
-		extra: { movementX?: number; movementY?: number; deltaY?: number } = {},
+		extra: {
+			movementX?: number;
+			movementY?: number;
+			deltaX?: number;
+			deltaY?: number;
+		} = {},
 	): NativePointerEvent {
 		return {
 			type,
@@ -110,7 +147,7 @@ export class PointerTracker {
 			buttons: sample.buttons,
 			movementX: extra.movementX ?? 0,
 			movementY: extra.movementY ?? 0,
-			deltaX: 0,
+			deltaX: extra.deltaX ?? 0,
 			deltaY: extra.deltaY ?? 0,
 			deltaMode: 0,
 			...mods,

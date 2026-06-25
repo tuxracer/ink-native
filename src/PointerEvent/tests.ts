@@ -69,3 +69,51 @@ describe("PointerTracker move and button events", () => {
 		expect(events.find((e) => e.type === "pointerdown")?.shiftKey).toBe(true);
 	});
 });
+
+describe("PointerTracker click and wheel", () => {
+	it("emits click on same-cell left down then up", () => {
+		const tracker = new PointerTracker();
+		tracker.update(sample({ buttons: 1, column: 5, row: 3 }), 0, OFF);
+		const { events } = tracker.update(
+			sample({ buttons: 0, column: 5, row: 3 }),
+			0,
+			OFF,
+		);
+		expect(events.some((e) => e.type === "click")).toBe(true);
+		const click = events.find((e) => e.type === "click");
+		expect(click?.column).toBe(5);
+		expect(click?.button).toBe(0);
+	});
+
+	it("does not emit click when up lands in a different cell", () => {
+		const tracker = new PointerTracker();
+		tracker.update(sample({ buttons: 1, column: 5, row: 3 }), 0, OFF);
+		const { events } = tracker.update(
+			sample({ buttons: 0, column: 8, row: 3 }),
+			0,
+			OFF,
+		);
+		expect(events.some((e) => e.type === "click")).toBe(false);
+	});
+
+	it("does not synthesize click for non-left buttons", () => {
+		const tracker = new PointerTracker();
+		tracker.update(sample({ buttons: 2, column: 5, row: 3 }), 0, OFF);
+		const { events } = tracker.update(
+			sample({ buttons: 0, column: 5, row: 3 }),
+			0,
+			OFF,
+		);
+		expect(events.some((e) => e.type === "click")).toBe(false);
+	});
+
+	it("emits a wheel event with deltaY", () => {
+		const tracker = new PointerTracker();
+		tracker.update(sample(), 0, OFF);
+		const { events } = tracker.update(sample({ wheelDy: 3 }), 0, OFF);
+		const wheel = events.find((e) => e.type === "wheel");
+		expect(wheel).toBeDefined();
+		expect(wheel?.deltaY).toBe(3);
+		expect(wheel?.button).toBe(-1);
+	});
+});
