@@ -12,12 +12,15 @@ Each module is a directory named after its primary export, containing `index.ts`
 
 - `src/Window/` - Main API (`createStreams`, `Window`)
 - `src/InputStream/` - Readable stream for keyboard input
+- `src/KeyboardEvent/` - Keyboard event types and parsing
+- `src/PointerEvent/` - Mouse/pointer event types and parsing
 - `src/OutputStream/` - Writable stream for ANSI output
 - `src/UiRenderer/` - Framebuffer renderer and window management
 - `src/AnsiParser/` - ANSI escape sequence parsing
 - `src/BitmapFont/` - Embedded Cozette bitmap font renderer
 - `src/Fenster/` - FFI bindings to fenster via koffi
 - `src/Demo/` - Demo app components (used by CLI)
+- `src/index.ts` - Library entry point (public API exports)
 - `src/cli.tsx` - CLI entry point (`npx ink-native`)
 - `src/consts.ts` - Shared constants used across modules
 - `fonts/` - Bundled Cozette BDF font (for bitmap generation)
@@ -28,6 +31,7 @@ Each module is a directory named after its primary export, containing `index.ts`
 
 ```bash
 pnpm dev             # Run in development mode (tsx)
+pnpm demo            # Run the interactive demo app (tsx src/cli.tsx)
 pnpm build           # Build for production (tsup → dist/)
 pnpm start           # Run built version
 pnpm test            # Run tests (vitest)
@@ -49,7 +53,7 @@ pnpm generate-font   # Regenerate bitmap font data from Cozette.bdf
 - **Runtime**: Node.js 24+
 - **Language**: TypeScript 5.9 (strict mode)
 - **Build**: tsup (ESM output)
-- **TUI Framework**: [Ink](https://github.com/vadimdemedes/ink) with [Ink UI](https://github.com/vadimdemedes/ink-ui) - React for the terminal. If you've worked with React, you'll feel right at home: components, hooks, JSX, and the familiar declarative paradigm all work here
+- **TUI Framework**: [Ink](https://github.com/vadimdemedes/ink) - React for the terminal. If you've worked with React, you'll feel right at home: components, hooks, JSX, and the familiar declarative paradigm all work here
 
 ## Coding Standards
 
