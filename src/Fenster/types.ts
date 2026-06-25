@@ -8,3 +8,13 @@ export interface FensterKeyEvent {
 	/** Whether the key is pressed (true) or released (false) */
 	pressed: boolean;
 }
+
+/** Raw mouse state read from the native window */
+export interface FensterPointerSample {
+	/** Logical pixel X, origin top-left */
+	x: number;
+	/** Logical pixel Y, origin top-left */
+	y: number;
+	/** DOM buttons bitmask (1 left, 2 right, 4 middle) */
+	buttons: number;
+}

@@ -10,7 +10,7 @@ import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import koffi from "koffi";
 import { FENSTER_LIB_PATHS, INT32_BYTES, KEYS_ARRAY_SIZE } from "./consts";
-import type { FensterPointer } from "./types";
+import type { FensterPointer, FensterPointerSample } from "./types";
 
 /**
  * Resolve the bundled fenster library path for the current platform.
@@ -61,6 +61,13 @@ export class Fenster {
 	) => void;
 	private _getKeys!: (f: FensterPointer) => unknown;
 	private _getMod!: (f: FensterPointer) => number;
+	private _getMouse!: (
+		f: FensterPointer,
+		x: Buffer,
+		y: Buffer,
+		buttons: Buffer,
+	) => void;
+	private _getWheel!: (f: FensterPointer, dx: Buffer, dy: Buffer) => void;
 	private _getSize!: (f: FensterPointer, w: Buffer, h: Buffer) => void;
 	private _getResized!: (f: FensterPointer, w: Buffer, h: Buffer) => number;
 	private _getScale!: (f: FensterPointer) => number;
@@ -90,6 +97,12 @@ export class Fenster {
 		);
 		this._getKeys = this.lib.func("void* fenster_bridge_get_keys(void* f)");
 		this._getMod = this.lib.func("int fenster_bridge_get_mod(void* f)");
+		this._getMouse = this.lib.func(
+			"void fenster_bridge_get_mouse(void* f, int* x, int* y, int* buttons)",
+		);
+		this._getWheel = this.lib.func(
+			"void fenster_bridge_get_wheel(void* f, int* dx, int* dy)",
+		);
 		this._getSize = this.lib.func(
 			"void fenster_bridge_get_size(void* f, int* w, int* h)",
 		);
@@ -169,6 +182,31 @@ export class Fenster {
 	}
 
 	/**
+	 * Get the current mouse position and button bitmask.
+	 */
+	getMouse(f: FensterPointer): FensterPointerSample {
+		const xBuf = Buffer.alloc(INT32_BYTES);
+		const yBuf = Buffer.alloc(INT32_BYTES);
+		const bBuf = Buffer.alloc(INT32_BYTES);
+		this._getMouse(f, xBuf, yBuf, bBuf);
+		return {
+			x: xBuf.readInt32LE(0),
+			y: yBuf.readInt32LE(0),
+			buttons: bBuf.readInt32LE(0),
+		};
+	}
+
+	/**
+	 * Get accumulated wheel deltas since the last call (resets on read).
+	 */
+	getWheel(f: FensterPointer): { dx: number; dy: number } {
+		const dxBuf = Buffer.alloc(INT32_BYTES);
+		const dyBuf = Buffer.alloc(INT32_BYTES);
+		this._getWheel(f, dxBuf, dyBuf);
+		return { dx: dxBuf.readInt32LE(0), dy: dyBuf.readInt32LE(0) };
+	}
+
+	/**
 	 * Check if the window was resized since the last call
 	 *
 	 * Returns the new dimensions if resized, or null if no resize occurred.
@@ -244,4 +282,8 @@ export const isFensterAvailable = (): boolean => {
 
 export * from "./consts";
 // Re-export types and constants
-export type { FensterKeyEvent, FensterPointer } from "./types";
+export type {
+	FensterKeyEvent,
+	FensterPointer,
+	FensterPointerSample,
+} from "./types";

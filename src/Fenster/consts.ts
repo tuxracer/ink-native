@@ -154,6 +154,17 @@ export const FENSTER_MOD_ALT = 4;
 export const FENSTER_MOD_META = 8;
 
 // =============================================================================
+// Mouse Button Bitmasks (fenster mouse field, DOM buttons convention)
+// =============================================================================
+
+/** Left mouse button bit */
+export const FENSTER_BUTTON_LEFT = 1;
+/** Right mouse button bit */
+export const FENSTER_BUTTON_RIGHT = 2;
+/** Middle mouse button bit */
+export const FENSTER_BUTTON_MIDDLE = 4;
+
+// =============================================================================
 // Buffer Constants
 // =============================================================================
 
