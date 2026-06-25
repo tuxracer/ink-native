@@ -492,20 +492,23 @@ export class AnsiParser {
 		if (!params.startsWith("?")) {
 			return;
 		}
-		const mode = parseInt(params.slice(1), 10);
-		switch (mode) {
-			case DECSET_MOUSE_CLICK:
-				this.mouseTracking = enable ? "click" : "off";
-				break;
-			case DECSET_MOUSE_BUTTON:
-				this.mouseTracking = enable ? "button" : "off";
-				break;
-			case DECSET_MOUSE_ANY:
-				this.mouseTracking = enable ? "any" : "off";
-				break;
-			case DECSET_MOUSE_SGR:
-				this.mouseSgr = enable;
-				break;
+		// A single sequence may set several modes at once, e.g. "?1000;1006h".
+		for (const part of params.slice(1).split(";")) {
+			const mode = parseInt(part, 10);
+			switch (mode) {
+				case DECSET_MOUSE_CLICK:
+					this.mouseTracking = enable ? "click" : "off";
+					break;
+				case DECSET_MOUSE_BUTTON:
+					this.mouseTracking = enable ? "button" : "off";
+					break;
+				case DECSET_MOUSE_ANY:
+					this.mouseTracking = enable ? "any" : "off";
+					break;
+				case DECSET_MOUSE_SGR:
+					this.mouseSgr = enable;
+					break;
+			}
 		}
 	}
 

@@ -168,11 +168,14 @@ FENSTER_API int fenster_loop(struct fenster *f) {
   case 4: /* NSEventTypeRightMouseUp */
     f->mouse &= ~2;
     break;
-  case 25: /* NSEventTypeOtherMouseDown (middle) */
-    f->mouse |= 4;
+  case 25: /* NSEventTypeOtherMouseDown */
+    /* buttonNumber 2 is the middle button; ignore side buttons */
+    if (msg(NSInteger, ev, "buttonNumber") == 2)
+      f->mouse |= 4;
     break;
-  case 26: /* NSEventTypeOtherMouseUp (middle) */
-    f->mouse &= ~4;
+  case 26: /* NSEventTypeOtherMouseUp */
+    if (msg(NSInteger, ev, "buttonNumber") == 2)
+      f->mouse &= ~4;
     break;
   case 22: { /* NSEventTypeScrollWheel */
     double dy = msg(double, ev, "scrollingDeltaY");

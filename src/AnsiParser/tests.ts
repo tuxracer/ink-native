@@ -353,4 +353,12 @@ describe("mouse mode tracking", () => {
 		const commands = parser.parse("\x1b[?1003h\x1b[?1006h");
 		expect(commands).toHaveLength(0);
 	});
+
+	it("parses combined DECSET sequences with multiple modes", () => {
+		const parser = new AnsiParser();
+		parser.parse("\x1b[?1003;1006h");
+		expect(parser.getMouseMode()).toEqual({ tracking: "any", sgr: true });
+		parser.parse("\x1b[?1003;1006l");
+		expect(parser.getMouseMode()).toEqual({ tracking: "off", sgr: false });
+	});
 });
