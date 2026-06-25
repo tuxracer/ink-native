@@ -35,7 +35,13 @@ if (process.env["FORCE_COLOR"] === undefined) {
 }
 
 // Shared
-export { AnsiParser, type Color, type DrawCommand } from "./AnsiParser";
+export {
+	AnsiParser,
+	type Color,
+	type DrawCommand,
+	type MouseMode,
+	type MouseTrackingMode,
+} from "./AnsiParser";
 // Font
 export { BitmapFontRenderer } from "./BitmapFont";
 // Fenster bindings (for advanced use)
@@ -43,6 +49,7 @@ export {
 	Fenster,
 	type FensterKeyEvent,
 	type FensterPointer,
+	type FensterPointerSample,
 	getFenster,
 	isFensterAvailable,
 } from "./Fenster";
@@ -54,6 +61,15 @@ export {
 	type NativeKeyboardEvent,
 } from "./KeyboardEvent";
 export { OutputStream } from "./OutputStream";
+// PointerEvent
+export {
+	isNativePointerEvent,
+	type NativePointerEvent,
+	type PointerEventType,
+	type PointerSample,
+	PointerTracker,
+	type PointerUpdate,
+} from "./PointerEvent";
 // Renderer
 export {
 	type Framebuffer,

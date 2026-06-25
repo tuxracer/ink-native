@@ -138,6 +138,8 @@ The main rendering coordinator:
 - Coordinates with BitmapFontRenderer for glyph output
 - Diffs fenster's polled key state array to detect key press/release events
 - Maps key events to terminal escape sequences
+- Samples mouse position, button bitmask, and wheel deltas each frame, deriving 1-based cell coordinates via `pixelToCell`
+- Exposes the parsed mouse tracking mode via `getMouseMode()`
 
 Rendering is done entirely in TypeScript: commands manipulate a JS-side `Uint32Array` framebuffer at physical resolution, which is then bulk-copied to the native buffer on present.
 
@@ -163,18 +165,30 @@ Converts fenster key events into `NativeKeyboardEvent` objects:
 - Returns `null` for unmapped key indices
 - Self-contained module — does not depend on UiRenderer's `SHIFTED_SYMBOLS`
 
-#### 7. Window
+#### 7. PointerEvent
+
+Converts per-frame mouse samples into `NativePointerEvent` objects and SGR mouse sequences:
+
+- `PointerTracker.update(sample, mod, mouseMode)` diffs the new sample against the previous frame
+- Produces `pointermove`/`pointerdown`/`pointerup`/`click`/`wheel` events shaped after the DOM `PointerEvent` API
+- `click` is synthesized on a left press and release in the same terminal cell
+- Maps fenster's button bitmask to DOM `button` index (`0` left, `1` middle, `2` right) and reports the DOM `buttons` bitmask
+- Builds SGR-1006 sequences honoring the active tracking mode (click / button / any)
+- Self-contained module — pure logic, unit-tested without the native layer
+
+#### 8. Window
 
 The window wrapper and event loop coordinator:
 
 - Manages the `setInterval`-based event loop
 - Processes key events from UiRenderer and pushes sequences to InputStream
 - Emits `keydown`/`keyup` events with `NativeKeyboardEvent` payload
+- Feeds the per-frame pointer sample through a `PointerTracker`, emits pointer events (with `mouse*` aliases), and pushes SGR mouse sequences to InputStream when not paused
 - Handles Ctrl+C (SIGINT) with configurable behavior
-- Emits events: `close`, `resize`, `keydown`, `keyup`, `sigint`
+- Emits events: `close`, `resize`, `keydown`, `keyup`, `pointermove`, `pointerdown`, `pointerup`, `click`, `wheel`, `sigint`
 - Provides `createStreams()` factory function for creating all components
 
-#### 8. Fenster FFI Bindings
+#### 9. Fenster FFI Bindings
 
 FFI bindings to the fenster native bridge via koffi:
 
@@ -182,7 +196,7 @@ FFI bindings to the fenster native bridge via koffi:
 - Lazy singleton pattern (instantiated on first use)
 - No system dependencies the native library is included in the package
 - Thin C bridge (~70 LOC) that wraps fenster's inline functions as exported symbols
-- Exposes: window create/open/loop/close, buffer copy, key state, modifier state, resize detection, HiDPI scale factor
+- Exposes: window create/open/loop/close, buffer copy, key state, modifier state, mouse position/buttons, wheel deltas, resize detection, HiDPI scale factor
 
 ## API Design
 
@@ -283,6 +297,15 @@ window.on("keydown", (event: NativeKeyboardEvent) => {
 window.on("keyup", (event: NativeKeyboardEvent) => {
   /* key release event */
 });
+window.on("pointermove", (event: NativePointerEvent) => {
+  /* mouse moved; event.column / event.row are 1-based cells */
+});
+window.on("click", (event: NativePointerEvent) => {
+  /* left press + release in the same cell */
+});
+window.on("wheel", (event: NativePointerEvent) => {
+  /* event.deltaY: positive = scroll down */
+});
 window.on("sigint", () => {
   /* Ctrl+C pressed */
 });
@@ -300,6 +323,30 @@ interface NativeKeyboardEvent {
   readonly metaKey: boolean;
   readonly repeat: false;      // Always false (fenster only reports transitions)
   readonly type: "keydown" | "keyup";
+}
+```
+
+#### NativePointerEvent
+
+```typescript
+interface NativePointerEvent {
+  readonly type: "pointerdown" | "pointerup" | "pointermove" | "click" | "wheel";
+  readonly clientX: number;    // Logical pixel position, origin top-left
+  readonly clientY: number;
+  readonly column: number;     // 1-based terminal cell (TUI extension)
+  readonly row: number;
+  readonly button: number;     // -1 none, 0 left, 1 middle, 2 right
+  readonly buttons: number;    // Bitmask: 1 left, 2 right, 4 middle
+  readonly movementX: number;  // Delta since previous sample
+  readonly movementY: number;
+  readonly deltaX: number;     // Wheel deltas (0 for non-wheel events)
+  readonly deltaY: number;
+  readonly ctrlKey: boolean;
+  readonly shiftKey: boolean;
+  readonly altKey: boolean;
+  readonly metaKey: boolean;
+  readonly pointerType: "mouse";
+  // offsetX/Y, pageX/Y, screenX/Y aliased to clientX/clientY for DOM compatibility
 }
 ```
 
@@ -396,6 +443,48 @@ Platform implementation:
 - **macOS**: Handles `NSEventTypeFlagsChanged` (event type 12) with device-dependent modifier flags to distinguish left/right
 - **Windows**: Polls `GetKeyState(VK_LSHIFT)` etc. during `WM_KEYDOWN`/`WM_KEYUP`
 - **Linux**: Maps `XK_Shift_L`, `XK_Shift_R`, etc. in the keysym lookup table
+
+## Mouse Input Mapping
+
+Mouse input follows the same polling model as keyboard input: state is sampled once per frame and diffed against the previous frame to synthesize events. Fast motion is coalesced to the latest position each frame.
+
+### Native State
+
+`struct fenster` carries the mouse state, read through bridge getters:
+
+- `mouse` — buttons bitmask, left=1, right=2, middle=4 (DOM `buttons` convention). Originally a left-only single bit; now tracks all three buttons.
+- `wheel_x` / `wheel_y` — accumulated wheel deltas, returned and zeroed on read (`fenster_bridge_get_wheel`). Positive `wheel_y` means scroll down (DOM convention).
+- `x` / `y` — logical pixel position, origin top-left.
+
+Platform implementation:
+- **macOS**: `fenster_open` enables `setAcceptsMouseMovedEvents:YES` so button-less motion fires. The event switch handles left/right/other button down and up, their drags, and `NSEventTypeScrollWheel` (normalizing `scrollingDeltaY` so positive = down).
+- **Linux**: Reads `ev.xbutton.button` (1/2/3 → left/middle/right, 4-7 → wheel) on `ButtonPress`/`ButtonRelease`.
+- **Windows**: Handles `WM_LBUTTON*`/`WM_RBUTTON*`/`WM_MBUTTON*` plus `WM_MOUSEWHEEL`/`WM_MOUSEHWHEEL`.
+
+### Cell Coordinates
+
+`pixelToCell` converts the logical pixel position to 1-based terminal cells: `column = floor(x / GLYPH_WIDTH) + 1`, `row = floor(y / GLYPH_HEIGHT) + 1`, clamped to the grid. Glyph dimensions and fenster's `x`/`y` are both logical, so this is independent of the HiDPI scale factor.
+
+### DECSET Tracking Modes
+
+The AnsiParser watches Ink's output for the private-mode sequences that a real terminal uses to enable mouse reporting, and exposes the result via `getMouseMode()`:
+
+| Sequence       | Effect                                  |
+| -------------- | --------------------------------------- |
+| `?1000h` / `l` | Click tracking (press + release only)   |
+| `?1002h` / `l` | Button-event tracking (adds drag)       |
+| `?1003h` / `l` | Any-event tracking (all motion)         |
+| `?1006h` / `l` | SGR (1006) extended coordinate encoding |
+
+SGR mouse sequences are pushed to `stdin` only when tracking is enabled and SGR encoding is on. Only SGR (1006) is emitted; the legacy X10 encoding is not. The EventEmitter pointer events always fire regardless of mode.
+
+### SGR-1006 Encoding
+
+Each report is `CSI < Cb ; Ccol ; Crow M` (press/motion) or `... m` (release). `Cb` is the button code plus flags: shift +4, alt +8, ctrl +16, motion +32, wheel +64. Button codes are `0` left, `1` middle, `2` right, `3` none. Examples: left press `\x1b[<0;5;3M`, left-drag motion `\x1b[<32;6;3M`, button-less motion `\x1b[<35;6;1M`, wheel down `\x1b[<65;4;2M`.
+
+### Pointer Events
+
+`click` is synthesized when a left press and release land in the same cell (EventEmitter only; there is no SGR click). `pointermove` with a non-zero `buttons` mask represents a drag. `mousedown`/`mouseup`/`mousemove` are emitted as aliases of the corresponding `pointer*` events.
 
 ## HiDPI Handling
 

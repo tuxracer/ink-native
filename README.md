@@ -32,6 +32,7 @@ No encoding, no PTY, no parsing, no process boundary - just a memory copy.
 - Zero system dependencies - no external libraries to install
 - Full ANSI color support (16, 256, and 24-bit true color)
 - Keyboard input with modifier keys (Ctrl, Shift, Alt)
+- Mouse input (move, buttons, click, scroll) via a DOM-PointerEvent-style API
 - Window resizing with automatic terminal dimension updates
 - HiDPI/Retina display support
 - Embedded [Cozette](https://github.com/slavfox/Cozette) bitmap font with 6,000+ glyphs
@@ -278,6 +279,7 @@ Event emitter for window lifecycle and input events.
 
 - `keydown` -- Emitted when a key is pressed (with `NativeKeyboardEvent` payload)
 - `keyup` -- Emitted when a key is released (with `NativeKeyboardEvent` payload)
+- `pointermove` / `pointerdown` / `pointerup` / `click` / `wheel` -- Mouse events (with `NativePointerEvent` payload); `mousedown` / `mouseup` / `mousemove` are aliases
 - `close` -- Emitted when the window is closed
 - `resize` -- Emitted when the window is resized (with `{ columns, rows }`)
 - `sigint` -- Emitted on Ctrl+C (if a listener is registered; otherwise sends SIGINT to the process)
@@ -290,7 +292,7 @@ Event emitter for window lifecycle and input events.
 - `clear()` -- Clear the screen
 - `close()` -- Close the window
 - `isClosed()` -- Check if the window is closed
-- `pause()` -- Pause Ink for manual rendering (keydown/keyup/resize/close events keep firing)
+- `pause()` -- Pause Ink for manual rendering (keyboard, pointer, resize, and close events keep firing)
 - `resume()` -- Resume Ink
 - `isPaused()` -- Check if Ink is paused
 - `processEvents()` -- Manually poll events and present the framebuffer (for custom render loops that need explicit control)
@@ -357,6 +359,57 @@ In addition to `keydown`/`keyup` events, key presses are also mapped to terminal
 - Shift for uppercase letters
 - Alt + letter sends `\x1b` + letter
 
+## Mouse / Pointer Events
+
+The `window` emits mouse events with a `NativePointerEvent` payload, shaped to be roughly compatible with the DOM [`PointerEvent`](https://developer.mozilla.org/en-US/docs/Web/API/PointerEvent) API. Position is reported both in logical pixels (`clientX`/`clientY`, origin top-left) and as 1-based terminal cells (`column`/`row`), which is usually what you want in a TUI.
+
+```typescript
+import { createStreams, type NativePointerEvent } from "ink-native";
+
+const { window } = createStreams({ title: "My App" });
+
+window.on("pointermove", (event: NativePointerEvent) => {
+  console.log(`cell ${event.column},${event.row}`); // 1-based terminal cell
+});
+
+window.on("pointerdown", (event: NativePointerEvent) => {
+  console.log(event.button); // 0 left, 1 middle, 2 right
+});
+
+window.on("click", (event: NativePointerEvent) => {
+  // Fires on a left press + release in the same cell
+  console.log(`click at ${event.column},${event.row}`);
+});
+
+window.on("wheel", (event: NativePointerEvent) => {
+  console.log(event.deltaY); // positive = scroll down
+});
+```
+
+`mousedown`, `mouseup`, and `mousemove` are emitted as aliases of `pointerdown`, `pointerup`, and `pointermove` with the same payload.
+
+#### `NativePointerEvent`
+
+| Property                                     | Type                                                            | Description                                        |
+| -------------------------------------------- | --------------------------------------------------------------- | -------------------------------------------------- |
+| `type`                                       | `"pointerdown" \| "pointerup" \| "pointermove" \| "click" \| "wheel"` | The event name                              |
+| `clientX` / `clientY`                        | `number`                                                        | Logical pixel position, origin top-left            |
+| `column` / `row`                             | `number`                                                        | 1-based terminal cell (TUI extension)              |
+| `button`                                     | `number`                                                        | `-1` none, `0` left, `1` middle, `2` right         |
+| `buttons`                                    | `number`                                                        | Bitmask of held buttons (`1` left, `2` right, `4` middle) |
+| `movementX` / `movementY`                    | `number`                                                        | Pixel delta since the previous sample              |
+| `deltaX` / `deltaY`                          | `number`                                                        | Wheel deltas (`0` for non-wheel events)            |
+| `ctrlKey` / `shiftKey` / `altKey` / `metaKey`| `boolean`                                                       | Modifier state                                     |
+| `pointerType`                                | `"mouse"`                                                       | Always `"mouse"`                                   |
+
+`offsetX/Y`, `pageX/Y`, and `screenX/Y` are present for rough DOM compatibility and equal `clientX/clientY` (the window has no element tree or global screen position). Use `isNativePointerEvent(value)` as a type guard.
+
+Mouse motion is sampled once per frame, so fast movement is coalesced to the latest position each frame.
+
+### Mouse Terminal Sequences
+
+Like keyboard input, mouse events are also encoded as SGR (1006) terminal sequences and pushed to `stdin`, but only after the app enables mouse tracking the way a real terminal expects (by writing the DECSET sequences `\x1b[?1000h` / `?1002h` / `?1003h` together with `?1006h`). This lets Ink mouse libraries that do their own DECSET-and-SGR handling work transparently. If nothing enables tracking, no mouse bytes reach `stdin` and you just use the events above. Only SGR (1006) encoding is emitted; the legacy X10 encoding is not.
+
 ## Low-Level Components
 
 For advanced use cases, ink-native exports its internal components:
@@ -373,6 +426,11 @@ import {
   createKeyboardEvent,
   isNativeKeyboardEvent,
   type NativeKeyboardEvent,
+
+  // Pointer events
+  PointerTracker,
+  isNativePointerEvent,
+  type NativePointerEvent,
 
   // Renderer
   UiRenderer,
