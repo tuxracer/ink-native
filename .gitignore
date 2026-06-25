@@ -4,3 +4,5 @@ dist/
 .DS_Store
 reference/
 TODO.md
+.superpowers/
+docs/superpowers/
