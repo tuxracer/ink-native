@@ -10,11 +10,13 @@ import { isDefined, pickBy } from "remeda";
 import { InputStream } from "../InputStream";
 import { createKeyboardEvent } from "../KeyboardEvent";
 import { OutputStream } from "../OutputStream";
+import { PointerTracker } from "../PointerEvent";
 import { UiRenderer, type UiRendererOptions } from "../UiRenderer";
 import {
 	DEFAULT_EVENT_LOOP_INTERVAL_MS,
 	DEFAULT_FRAME_RATE,
 	MS_PER_SECOND,
+	POINTER_EVENT_ALIASES,
 } from "./consts";
 
 import type { Streams, StreamsOptions } from "./types";
@@ -35,6 +37,7 @@ export class Window extends EventEmitter {
 	private closed = false;
 	private paused = false;
 	private currentFrameRate: number;
+	private pointerTracker = new PointerTracker();
 
 	constructor(
 		renderer: UiRenderer,
@@ -74,7 +77,8 @@ export class Window extends EventEmitter {
 		}
 
 		// Process events and present the framebuffer
-		const { keyEvents, mod, resized } = this.renderer.processEventsAndPresent();
+		const { keyEvents, mod, resized, pointer } =
+			this.renderer.processEventsAndPresent();
 
 		// Convert key events to terminal sequences and emit keyboard events
 		for (const event of keyEvents) {
@@ -107,6 +111,30 @@ export class Window extends EventEmitter {
 				}
 			} else if (kbEvent) {
 				this.emit("keyup", kbEvent);
+			}
+		}
+
+		// Pointer events: diff the sample into DOM events + SGR sequences.
+		// Events always fire; SGR sequences feed Ink's stdin only when the app
+		// enabled mouse tracking (handled by the tracker) and we are not paused.
+		const mouseMode = this.renderer.getMouseMode();
+		const { events: pointerEvents, sequences } = this.pointerTracker.update(
+			pointer,
+			mod,
+			mouseMode,
+		);
+
+		for (const pointerEvent of pointerEvents) {
+			this.emit(pointerEvent.type, pointerEvent);
+			const alias = POINTER_EVENT_ALIASES[pointerEvent.type];
+			if (alias) {
+				this.emit(alias, pointerEvent);
+			}
+		}
+
+		if (!this.paused) {
+			for (const sequence of sequences) {
+				this.inputStream.pushKey(sequence);
 			}
 		}
 
