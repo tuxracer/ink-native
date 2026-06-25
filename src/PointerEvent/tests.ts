@@ -117,3 +117,86 @@ describe("PointerTracker click and wheel", () => {
 		expect(wheel?.button).toBe(-1);
 	});
 });
+
+describe("PointerTracker SGR sequences", () => {
+	const CLICK = { tracking: "click", sgr: true } as const;
+	const BUTTON = { tracking: "button", sgr: true } as const;
+	const ANY = { tracking: "any", sgr: true } as const;
+
+	it("emits no sequences when tracking is off", () => {
+		const tracker = new PointerTracker();
+		const { sequences } = tracker.update(sample({ buttons: 1 }), 0, OFF);
+		expect(sequences).toEqual([]);
+	});
+
+	it("emits no sequences when sgr encoding is disabled", () => {
+		const tracker = new PointerTracker();
+		const { sequences } = tracker.update(sample({ buttons: 1 }), 0, {
+			tracking: "any",
+			sgr: false,
+		});
+		expect(sequences).toEqual([]);
+	});
+
+	it("encodes left press and release with M/m and 1-based cell", () => {
+		const tracker = new PointerTracker();
+		const down = tracker.update(
+			sample({ buttons: 1, column: 5, row: 3 }),
+			0,
+			CLICK,
+		);
+		expect(down.sequences).toContain("\x1b[<0;5;3M");
+		const up = tracker.update(
+			sample({ buttons: 0, column: 5, row: 3 }),
+			0,
+			CLICK,
+		);
+		expect(up.sequences).toContain("\x1b[<0;5;3m");
+	});
+
+	it("does not report motion in click mode", () => {
+		const tracker = new PointerTracker();
+		tracker.update(sample({ x: 0, column: 1, row: 1 }), 0, CLICK);
+		const { sequences } = tracker.update(
+			sample({ x: 30, column: 6, row: 1 }),
+			0,
+			CLICK,
+		);
+		expect(sequences).toEqual([]);
+	});
+
+	it("reports drag motion only with a button held in button mode", () => {
+		const tracker = new PointerTracker();
+		tracker.update(sample({ buttons: 1, column: 5, row: 3 }), 0, BUTTON);
+		const drag = tracker.update(
+			sample({ buttons: 1, x: 30, column: 6, row: 3 }),
+			0,
+			BUTTON,
+		);
+		// button held (left=0) + motion flag (32) = 32
+		expect(drag.sequences).toContain("\x1b[<32;6;3M");
+	});
+
+	it("reports buttonless motion in any mode with code 35", () => {
+		const tracker = new PointerTracker();
+		tracker.update(sample({ column: 1, row: 1 }), 0, ANY);
+		const { sequences } = tracker.update(
+			sample({ x: 30, column: 6, row: 1 }),
+			0,
+			ANY,
+		);
+		// no button (3) + motion flag (32) = 35
+		expect(sequences).toContain("\x1b[<35;6;1M");
+	});
+
+	it("encodes wheel down as code 65", () => {
+		const tracker = new PointerTracker();
+		tracker.update(sample({ column: 4, row: 2 }), 0, ANY);
+		const { sequences } = tracker.update(
+			sample({ wheelDy: 1, column: 4, row: 2 }),
+			0,
+			ANY,
+		);
+		expect(sequences).toContain("\x1b[<65;4;2M");
+	});
+});
