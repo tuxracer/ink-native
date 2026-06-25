@@ -25,6 +25,10 @@ import {
 	ANSI_TAB_WIDTH,
 	COLOR_CUBE_END,
 	COLOR_CUBE_START,
+	DECSET_MOUSE_ANY,
+	DECSET_MOUSE_BUTTON,
+	DECSET_MOUSE_CLICK,
+	DECSET_MOUSE_SGR,
 	DEFAULT_BG,
 	DEFAULT_FG,
 	EXTENDED_256,
@@ -59,7 +63,7 @@ import {
 	SGR_UNDERLINE,
 } from "./consts";
 
-import type { Color, DrawCommand } from "./types";
+import type { Color, DrawCommand, MouseMode, MouseTrackingMode } from "./types";
 
 export * from "./types";
 
@@ -111,6 +115,8 @@ export class AnsiParser {
 	private fgColor: Color = { ...DEFAULT_FG };
 	private bgColor: Color = { ...DEFAULT_BG };
 	private bold = false;
+	private mouseTracking: MouseTrackingMode = "off";
+	private mouseSgr = false;
 
 	/**
 	 * Parse an ANSI string and return draw commands
@@ -249,6 +255,11 @@ export class AnsiParser {
 
 			case "s": // Save Cursor Position
 			case "u": // Restore Cursor Position
+				break;
+
+			case "h": // DEC private mode set
+			case "l": // DEC private mode reset
+				this.processPrivateMode(params, command === "h");
 				break;
 
 			default:
@@ -467,6 +478,38 @@ export class AnsiParser {
 	}
 
 	/**
+	 * Get the current mouse reporting mode requested by the app.
+	 */
+	getMouseMode(): MouseMode {
+		return { tracking: this.mouseTracking, sgr: this.mouseSgr };
+	}
+
+	/**
+	 * Handle DEC private mode set/reset (e.g. mouse tracking enable/disable).
+	 * Only mouse-related modes are acted on; others are ignored.
+	 */
+	private processPrivateMode(params: string, enable: boolean): void {
+		if (!params.startsWith("?")) {
+			return;
+		}
+		const mode = parseInt(params.slice(1), 10);
+		switch (mode) {
+			case DECSET_MOUSE_CLICK:
+				this.mouseTracking = enable ? "click" : "off";
+				break;
+			case DECSET_MOUSE_BUTTON:
+				this.mouseTracking = enable ? "button" : "off";
+				break;
+			case DECSET_MOUSE_ANY:
+				this.mouseTracking = enable ? "any" : "off";
+				break;
+			case DECSET_MOUSE_SGR:
+				this.mouseSgr = enable;
+				break;
+		}
+	}
+
+	/**
 	 * Reset parser state
 	 */
 	reset(): void {
@@ -475,6 +518,8 @@ export class AnsiParser {
 		this.fgColor = { ...DEFAULT_FG };
 		this.bgColor = { ...DEFAULT_BG };
 		this.bold = false;
+		this.mouseTracking = "off";
+		this.mouseSgr = false;
 	}
 }
 

@@ -320,3 +320,37 @@ describe("AnsiParser", () => {
 		});
 	});
 });
+
+describe("mouse mode tracking", () => {
+	it("defaults to off / non-sgr", () => {
+		const parser = new AnsiParser();
+		expect(parser.getMouseMode()).toEqual({ tracking: "off", sgr: false });
+	});
+
+	it("enables any-motion + sgr from DECSET sequences", () => {
+		const parser = new AnsiParser();
+		parser.parse("\x1b[?1003h\x1b[?1006h");
+		expect(parser.getMouseMode()).toEqual({ tracking: "any", sgr: true });
+	});
+
+	it("maps 1000 to click and 1002 to button", () => {
+		const parser = new AnsiParser();
+		parser.parse("\x1b[?1000h");
+		expect(parser.getMouseMode().tracking).toBe("click");
+		parser.parse("\x1b[?1002h");
+		expect(parser.getMouseMode().tracking).toBe("button");
+	});
+
+	it("disables tracking and sgr on the matching reset", () => {
+		const parser = new AnsiParser();
+		parser.parse("\x1b[?1003h\x1b[?1006h");
+		parser.parse("\x1b[?1003l\x1b[?1006l");
+		expect(parser.getMouseMode()).toEqual({ tracking: "off", sgr: false });
+	});
+
+	it("emits no draw commands for mouse-mode sequences", () => {
+		const parser = new AnsiParser();
+		const commands = parser.parse("\x1b[?1003h\x1b[?1006h");
+		expect(commands).toHaveLength(0);
+	});
+});

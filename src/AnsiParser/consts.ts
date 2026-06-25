@@ -111,3 +111,15 @@ export const GRAYSCALE_START = 232;
 export const GRAYSCALE_END = 255;
 export const GRAYSCALE_STEP = 10;
 export const GRAYSCALE_BASE = 8;
+
+/** DECSET private mode: basic click tracking (press + release) */
+export const DECSET_MOUSE_CLICK = 1_000;
+
+/** DECSET private mode: button-motion tracking (press, release, drag) */
+export const DECSET_MOUSE_BUTTON = 1_002;
+
+/** DECSET private mode: any-motion tracking (all mouse movement) */
+export const DECSET_MOUSE_ANY = 1_003;
+
+/** DECSET private mode: SGR extended mouse coordinate encoding */
+export const DECSET_MOUSE_SGR = 1_006;

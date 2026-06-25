@@ -1,3 +1,14 @@
+/** Mouse tracking mode requested by the app via DECSET sequences */
+export type MouseTrackingMode = "off" | "click" | "button" | "any";
+
+/** Current mouse reporting configuration parsed from the output stream */
+export interface MouseMode {
+	/** Which motion/button events the app asked to receive */
+	tracking: MouseTrackingMode;
+	/** Whether SGR (1006) encoding is enabled */
+	sgr: boolean;
+}
+
 /** RGB color value */
 export interface Color {
 	r: number;
